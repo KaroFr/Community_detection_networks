@@ -1,0 +1,188 @@
+import numpy as np
+import pandas as pd
+from SpectralClustering import SpectralClustering
+from Helpers import getMembershipMatrix
+
+"""
+Class to perform PACE
+"""
+
+
+class PACE:
+    algorithm = 'PACE'
+    subgraph_selection_alg = 'Random'
+    parent_alg ='SC'
+    subgraphs = pd.DataFrame([])
+    result_estimate = np.array([])
+    result_estimate_threshold = np.array([])
+    n_nodes = 0
+
+    def __init__(self, adjacency, n_subgraphs, size_subgraphs, n_clusters, tau, ID=-1, subgraph_sel_alg='Random', parent_alg='SC'):
+        self.ID = ID
+        self.adj = adjacency
+        self.T = n_subgraphs
+        self.m = size_subgraphs
+        self.K = n_clusters
+        self.tau = tau
+        self.subgraph_selection_alg = subgraph_sel_alg
+        self.parent_alg = parent_alg
+        self.n_nodes = len(adjacency)
+
+    """
+    get import values as dictionary
+    """
+
+    def get_values(self):
+        var_dict = {'ID': self.ID,
+                    'n_nodes': self.n_nodes,
+                    'n_clusters': self.K,
+                    'algorithm': self.algorithm,
+                    'subgraph_sel_alg': self.subgraph_selection_alg,
+                    'n_subgraphs': self.T,
+                    'PACE_tau': self.tau,
+                    }
+        return var_dict
+
+    """
+    Random selection of subgraphs 
+    The subgraphs will be stored in the DataFrame 'subgraphs'
+    """
+
+    def selectSubgraphs(self):
+        n = self.n_nodes
+        m = self.m
+        T = self.T
+        adj = self.adj
+
+        # initiate the output
+        data = []
+
+        # construct a random subgraph (T times)
+        for _ in np.arange(T):
+            # randomly choose m indices out of [n]
+            index_set = np.random.choice(n, size=m, replace=False)
+            index_set = np.sort(index_set)
+            # get a grid to extract the submatrix
+            ixgrid = np.ix_(index_set, index_set)
+            data.append(
+                {
+                    'indices': index_set,
+                    'subgraphs': adj[ixgrid]
+                }
+            )
+
+        # load data into a DataFrame object:
+        self.subgraphs = pd.DataFrame(data)
+        print(' PACE: Selected T =', T, ' subgraphs of size m =', m)
+
+    """
+    Perform Clustering on each subgraph 
+    The Clustering results will be stored in the Dataframe 'subgraphs'
+    """
+
+    def clusterSubgraphs(self):
+        subgraphs_for_clustering = self.subgraphs
+        n_clusters = self.K
+        parent_alg = self.parent_alg
+
+        clustering_results = []
+
+        if parent_alg == 'SC':
+            # perform spectral clustering on each subgraph
+            for index, subgraph in subgraphs_for_clustering.iterrows():
+                adj_sub = subgraph["subgraphs"]
+                SC_object = SpectralClustering(ID=self.ID, P_estimate=adj_sub, K=n_clusters)
+                SC_result = SC_object.performSC()
+                clustering_results.append(SC_result)
+
+        subgraphs_for_clustering["clustering_result"] = clustering_results
+        self.subgraphs = subgraphs_for_clustering
+        print(' PACE: Performed clustering algorithm', parent_alg, 'on all subgraphs for K =', n_clusters, 'clusters')
+
+    """
+    1)  Get the clustering matrices of the subgraphs
+        and extend them to clustering matrices of the whole set by adding zeros
+    2)  Get the counting matrices y
+    """
+
+    def getMatrices(self):
+        subgraphs_to_add_matrices = self.subgraphs
+        n_nodes = self.n_nodes
+
+        clustering_matrices = []
+        counting_matrices = []
+
+        for index, subgraph in subgraphs_to_add_matrices.iterrows():
+            # initiate a clustering/counting matrix containing zeros
+            clustering_matrix = np.zeros(n_nodes * n_nodes).reshape(n_nodes, n_nodes)
+            counting_matrix = np.zeros(n_nodes * n_nodes).reshape(n_nodes, n_nodes)
+
+            # get the according index set and the grid
+            index_set = subgraph["indices"]
+            ixgrid = np.ix_(index_set, index_set)
+
+            # get clustering matrix of the subgraph
+            clustering_labels = subgraph["clustering_result"]
+            membership_mat = getMembershipMatrix(clustering_labels)
+            clustering_matrix_subgraph = membership_mat @ membership_mat.transpose()
+
+            # get counting matrix of the subgraph with only ones
+            m = len(index_set)
+            counting_matrix_subgraph = np.ones((m, m))
+
+            # write the clustering matrix of the subgraph into the zero matrix
+            clustering_matrix[ixgrid] = clustering_matrix_subgraph
+            clustering_matrices.append(clustering_matrix)
+
+            # write the clustering matrix of the subgraph into the zero matrix
+            counting_matrix[ixgrid] = counting_matrix_subgraph
+            counting_matrices.append(counting_matrix)
+
+        subgraphs_to_add_matrices["Clustering_matrices"] = clustering_matrices
+        subgraphs_to_add_matrices["Counting_matrices"] = counting_matrices
+        self.subgraphs = subgraphs_to_add_matrices
+
+    """
+    combine the results from the different subgraphs
+    Calculate the estimate \hat{C}
+    """
+
+    def patchUp(self):
+        tau = self.tau
+        subgraphs_to_patch_up = self.subgraphs
+
+        # get counting matrix N
+        counting_matrix = sum(subgraphs_to_patch_up["Counting_matrices"])
+        counting_matrix_tau = np.array(
+            [[x if x > 1 else 0 for x in counting_matrix[i]] for i in range(len(counting_matrix))])
+
+        # get clustering matrix C
+        clustering_matrix = sum(subgraphs_to_patch_up["Clustering_matrices"])
+
+        # average -> get estimate \hat{C}
+        clustering_matrix_estimate = np.divide(clustering_matrix, counting_matrix_tau,
+                                               out=np.zeros_like(clustering_matrix), where=counting_matrix_tau != 0)
+
+        self.result_estimate = clustering_matrix_estimate
+        print(' PACE: Calculated the estimate for tau =', tau)
+
+    """
+    Perform the whole algorithm
+    """
+
+    def performPACE(self):
+        print('Perform PACE:')
+        self.selectSubgraphs()
+        self.clusterSubgraphs()
+        self.getMatrices()
+        self.patchUp()
+        return self.result_estimate
+
+    """
+    Apply a threshold to the result to get a binary clustering matrix
+    """
+
+    def applyThresholdToEstimate(self, threshold=0.5):
+        clust_mat = self.result_estimate
+        clust_mat_thres = np.array([[1 if x > threshold else 0 for x in clust_mat[i]] for i in range(len(clust_mat))])
+        self.result_estimate_threshold = clust_mat_thres
