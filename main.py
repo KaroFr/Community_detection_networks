@@ -39,7 +39,9 @@ print('--------------------------')
 time_start_PACE = time.time()
 
 PACE_object = PACE(ID=ID, adjacency=adj, n_subgraphs=5, size_subgraphs=10, tau=6.0, n_clusters=K)
-PACE_estimate = PACE_object.performPACE()
+PACE_estimate_clustering_matrix = PACE_object.performPACE()
+PACE_object.applyFinalClustering()
+PACE_estimate_labels = PACE_object.clustering_labels_estimate
 
 time_end_PACE = time.time()
 print(' Time needed for PACE: %s seconds ' % (time_end_PACE - time_start_PACE))
@@ -47,15 +49,14 @@ PACE_results = PACE_object.get_values()
 PACE_results['time'] = time_end_PACE - time_start_PACE
 
 print(' Result from PACE:')
-print(np.round(PACE_estimate, 2))
-PACE_results['SarkarMetric'] = SarkarMetric_fromMatrices(PACE_estimate, clustering_matrix)
+print(PACE_estimate_labels)
+PACE_results['SarkarMetric'] = SarkarMetric_fromMatrices(PACE_estimate_clustering_matrix, clustering_matrix)
+PACE_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromLabels(PACE_estimate_labels, y_true)
 
 ########################################################
 ########### PACE with threshold
 PACE_object.applyThresholdToEstimate(threshold=0.5)
-PACE_estimate_threshold = PACE_object.result_estimate_threshold
-print(' Result from PACE with threshold:')
-print(PACE_estimate_threshold)
+PACE_estimate_threshold = PACE_object.clustering_matrix_estimate_threshold
 PACE_results['SarkarMetric_threshold'] = SarkarMetric_fromMatrices(PACE_estimate_threshold, clustering_matrix)
 
 #######################################################
@@ -100,29 +101,11 @@ print(' Metric: ', LeiRinaldoMetric_1_fromLabels(SC_estimate, y_true))
 print(' Metric: ', SarkarMetric_fromLabels(SC_estimate, y_true))
 SC_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromLabels(SC_estimate, y_true)
 SC_results['SarkarMetric'] = SarkarMetric_fromLabels(SC_estimate, y_true)
-print('test 1')
+
 try:
     df = pd.concat([results_df, PACE_results, GALE_results, SC_results], ignore_index=True)
 except NameError:
     df = pd.concat([PACE_results, GALE_results, SC_results], ignore_index=True)
-print(' test 2')
+
 print(df)
 df.to_csv('results/results_csv.csv', sep=';', index=False)
-print('test 3')
-
-# result_LeiRinaldo = SpectralClustering(adj, k)
-# L = getLaplacian(adj)
-# result_RoheEtAl = SpectralClustering(L, k)
-#
-# print('The true labels are: ', y_true)
-# print('Lei Rinaldo yields:  ', result_LeiRinaldo)
-# print('Rohe et al yields:   ', result_RoheEtAl)
-#
-# print('Sarkar Metric of Lei Rinaldo: ', SarkarMetric(result_LeiRinaldo, y_true))
-# print('Sarkar Metric of Rohe et al:  ', SarkarMetric(result_RoheEtAl, y_true))
-#
-# print('L Metric of Lei Rinaldo: ', LeiRinaldoMetric_1(result_LeiRinaldo, y_true))
-# print('L Metric of Rohe et al:  ', LeiRinaldoMetric_1(result_RoheEtAl, y_true))
-#
-# print('\Tilde{L} Metric of Lei Rinaldo: ', LeiRinaldoMetric_2(result_LeiRinaldo, y_true))
-# print('\Tilde{L} Metric of Rohe et al:  ', LeiRinaldoMetric_2(result_RoheEtAl, y_true))
