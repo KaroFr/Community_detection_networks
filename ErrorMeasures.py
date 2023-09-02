@@ -7,9 +7,6 @@ from numpy.linalg import norm
 # for the metric of Lei Rinaldo - To iterate over permutation matrices
 import itertools
 
-
-
-
 """
 Input: Two arrays of clustering labels
 Output: Difference of the confusion matrices in L0 Norm
@@ -33,7 +30,7 @@ This Metric is suggested by Sarkar and Bickel
 """
 
 
-def SarkarMetric_labels(clustering_labels_1, clustering_labels_2):
+def SarkarMetric_fromLabels(clustering_labels_1, clustering_labels_2):
     n_clusters = len(clustering_labels_1)
     membership_1 = getMembershipMatrix(clustering_labels_1)
     membership_2 = getMembershipMatrix(clustering_labels_2)
@@ -52,7 +49,7 @@ This Metric is suggested by Sarkar and Bickel
 """
 
 
-def SarkarMetric_matrix(clustering_matrix_1, clustering_matrix_2):
+def SarkarMetric_fromMatrices(clustering_matrix_1, clustering_matrix_2):
     n_clusters = len(clustering_matrix_1)
     diff_mat = clustering_matrix_1 - clustering_matrix_2
     # Frobenius Norm
@@ -69,8 +66,8 @@ Output: Error measure L of Lei, Rinaldo
 """
 
 
-def LeiRinaldoMetric_1(clustering_labels_estimate, clustering_labels_true):
-    n_clusters = len(clustering_labels_true)
+def LeiRinaldoMetric_1_fromLabels(clustering_labels_estimate, clustering_labels_true):
+    n_nodes = len(clustering_labels_true)
     # get the according membership matrices \Theta and \hat{\Theta}
     membership_est = getMembershipMatrix(clustering_labels_estimate)
     membership_true = getMembershipMatrix(clustering_labels_true)
@@ -84,7 +81,31 @@ def LeiRinaldoMetric_1(clustering_labels_estimate, clustering_labels_true):
         diff_mat = membership_est_perm - membership_true
         L0_differences.append(np.count_nonzero(diff_mat))
     # get minimum difference
-    return 0.5 * np.min(L0_differences) / n_clusters
+    return 0.5 * np.min(L0_differences) / n_nodes
+
+
+"""
+1. Metric suggested by Lei, Rinaldo
+Input: Two membership matrices
+Output: Error measure L of Lei, Rinaldo
+
+!!! I scaled it with 0.5 at the end
+"""
+
+
+def LeiRinaldoMetric_1_fromMatrices(membership_est, membership_true):
+    n_nodes = len(membership_est)
+    # transpose so we can use itertools.permutations on the columns
+    membership_est = membership_est.T
+    membership_true = membership_true.T
+    # initiate an array for the differences
+    L0_differences = []
+    # for loop over all permutation matrices
+    for membership_est_perm in itertools.permutations(membership_est):
+        diff_mat = membership_est_perm - membership_true
+        L0_differences.append(np.count_nonzero(diff_mat))
+    # get minimum difference
+    return 0.5 * np.min(L0_differences) / n_nodes
 
 
 """
