@@ -11,13 +11,14 @@ Class to perform PACE
 class PACE:
     algorithm = 'PACE'
     subgraph_selection_alg = 'Random'
-    parent_alg ='SC'
+    parent_alg = 'SC'
     subgraphs = pd.DataFrame([])
     result_estimate = np.array([])
     result_estimate_threshold = np.array([])
     n_nodes = 0
 
-    def __init__(self, adjacency, n_subgraphs, size_subgraphs, n_clusters, tau, ID=-1, subgraph_sel_alg='Random', parent_alg='SC'):
+    def __init__(self, adjacency, n_subgraphs, size_subgraphs, n_clusters, tau, ID=-1, subgraph_sel_alg='Random',
+                 parent_alg='SC'):
         self.ID = ID
         self.adj = adjacency
         self.T = n_subgraphs
@@ -33,15 +34,15 @@ class PACE:
     """
 
     def get_values(self):
-        var_dict = {'ID': self.ID,
-                    'n_nodes': self.n_nodes,
-                    'n_clusters': self.K,
-                    'algorithm': self.algorithm,
-                    'subgraph_sel_alg': self.subgraph_selection_alg,
-                    'n_subgraphs': self.T,
-                    'PACE_tau': self.tau,
-                    }
-        return var_dict
+        var_df = pd.DataFrame([{'ID': self.ID,
+                                'n_nodes': self.n_nodes,
+                                'n_clusters': self.K,
+                                'algorithm': self.algorithm,
+                                'subgraph_sel_alg': self.subgraph_selection_alg,
+                                'n_subgraphs': self.T,
+                                'PACE_tau': self.tau,
+                                }])
+        return var_df
 
     """
     Random selection of subgraphs 
