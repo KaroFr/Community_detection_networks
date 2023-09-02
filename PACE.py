@@ -13,8 +13,9 @@ class PACE:
     subgraph_selection_alg = 'Random'
     parent_alg = 'SC'
     subgraphs = pd.DataFrame([])
-    result_estimate = np.array([])
-    result_estimate_threshold = np.array([])
+    clustering_matrix_estimate = np.array([])
+    clustering_matrix_estimate_threshold = np.array([])
+    clustering_labels_estimate = np.array([])
     n_nodes = 0
 
     def __init__(self, adjacency, n_subgraphs, size_subgraphs, n_clusters, tau, ID=-1, subgraph_sel_alg='Random',
@@ -164,7 +165,7 @@ class PACE:
         clustering_matrix_estimate = np.divide(clustering_matrix, counting_matrix_tau,
                                                out=np.zeros_like(clustering_matrix), where=counting_matrix_tau != 0)
 
-        self.result_estimate = clustering_matrix_estimate
+        self.clustering_matrix_estimate = clustering_matrix_estimate
         print(' PACE: Calculated the estimate for tau =', tau)
 
     """
@@ -177,13 +178,24 @@ class PACE:
         self.clusterSubgraphs()
         self.getMatrices()
         self.patchUp()
-        return self.result_estimate
+        return self.clustering_matrix_estimate
 
     """
     Apply a threshold to the result to get a binary clustering matrix
     """
 
     def applyThresholdToEstimate(self, threshold=0.5):
-        clust_mat = self.result_estimate
+        clust_mat = self.clustering_matrix_estimate
         clust_mat_thres = np.array([[1 if x > threshold else 0 for x in clust_mat[i]] for i in range(len(clust_mat))])
-        self.result_estimate_threshold = clust_mat_thres
+        self.clustering_matrix_estimate_threshold = clust_mat_thres
+
+    """
+    Apply a final clustering algorithm to get the labels
+    """
+
+    def applyFinalClustering(self):
+        clustering_matrix_estimate = self.clustering_matrix_estimate
+        n_clusters = self.K
+        SC_object = SpectralClustering(P_estimate=clustering_matrix_estimate, K=n_clusters)
+        clustering_labels_estimate = SC_object.performSC()
+        self.clustering_labels_estimate = clustering_labels_estimate
