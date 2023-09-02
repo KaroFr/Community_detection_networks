@@ -36,6 +36,6 @@ Output: According confusion Matrix
 """
 
 
-def getClusteringMatrix(membership_matrix):
+def getConfusionMatrix(membership_matrix):
     confusion_matrix = membership_matrix.transpose() @ membership_matrix
     return confusion_matrix
