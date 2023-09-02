@@ -1,5 +1,6 @@
 import numpy as np
 # for calculating eigenvalues and eigenvectors
+import pandas as pd
 from numpy.linalg import eig
 # KMeans
 from sklearn.cluster import KMeans
@@ -13,8 +14,8 @@ class SpectralClustering:
     algorithm = 'SC'
     labels_pred = []
 
-    def __init__(self, ID, P_estimate, K):
-        self.ID = ID,
+    def __init__(self, P_estimate, K, ID=-1):
+        self.ID = ID
         self.P_estimate = P_estimate
         self.K = K
         self.n_nodes = len(P_estimate)
@@ -24,12 +25,12 @@ class SpectralClustering:
     """
 
     def get_values(self):
-        var_dict = {'ID': self.ID,
-                    'n_nodes': self.n_nodes,
-                    'n_clusters': self.K,
-                    'algorithm': self.algorithm,
-                    }
-        return var_dict
+        var_df = pd.DataFrame([{'ID': self.ID,
+                                'n_nodes': self.n_nodes,
+                                'n_clusters': self.K,
+                                'algorithm': self.algorithm,
+                                }])
+        return var_df
 
     """
     Performs Spectral Clustering
