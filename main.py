@@ -29,7 +29,7 @@ p = 0.6
 adj, y_true = simulate_SBM_2(K, s, r, p)
 membership_matrix = getMembershipMatrix(y_true)
 clustering_matrix = membership_matrix @ membership_matrix.transpose()
-print(clustering_matrix)
+print(membership_matrix)
 
 #######################################################
 ############## PACE
@@ -76,7 +76,8 @@ GALE_results['time'] = time_end_GALE - time_start_GALE
 
 print(' Result from GALE:')
 print(np.round(GALE_estimate, 2))
-# print(' Metric: ', LeiRinaldoMetric_1(GALE_estimate, clustering_matrix))
+print(' Metric: ', LeiRinaldoMetric_1_fromMatrices(GALE_estimate, membership_matrix))
+GALE_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromMatrices(GALE_estimate, membership_matrix)
 
 ########################################################
 ########### Spectral Clustering
@@ -86,7 +87,7 @@ print('------ perform SC ------')
 print('--------------------------')
 time_start_SC = time.time()
 SC_object = SpectralClustering(ID=ID, P_estimate=adj, K=K)
-result_LeiRinaldo = SC_object.performSC()
+SC_estimate = SC_object.performSC()
 
 time_end_SC = time.time()
 print(' Time needed for SC: %s seconds ' % (time_end_SC - time_start_SC))
@@ -94,17 +95,20 @@ SC_results = SC_object.get_values()
 SC_results['time'] = time_end_SC - time_start_SC
 
 print(' Result from SC:')
-print(result_LeiRinaldo)
-
+print(SC_estimate)
+print(' Metric: ', LeiRinaldoMetric_1_fromLabels(SC_estimate, y_true))
+print(' Metric: ', SarkarMetric_fromLabels(SC_estimate, y_true))
+SC_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromLabels(SC_estimate, y_true)
+SC_results['SarkarMetric'] = SarkarMetric_fromLabels(SC_estimate, y_true)
+print('test 1')
 try:
     df = pd.concat([results_df, PACE_results, GALE_results, SC_results], ignore_index=True)
 except NameError:
     df = pd.concat([PACE_results, GALE_results, SC_results], ignore_index=True)
-
+print(' test 2')
 print(df)
 df.to_csv('results/results_csv.csv', sep=';', index=False)
-
-print(' Metric: ', SarkarMetric_labels(result_LeiRinaldo, y_true))
+print('test 3')
 
 # result_LeiRinaldo = SpectralClustering(adj, k)
 # L = getLaplacian(adj)
