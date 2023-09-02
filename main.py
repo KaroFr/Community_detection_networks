@@ -48,15 +48,15 @@ PACE_results['time'] = time_end_PACE - time_start_PACE
 
 print(' Result from PACE:')
 print(np.round(PACE_estimate, 2))
-# print(' Metric: ', SarkarMetric_matrix(PACE_estimate, clustering_matrix))
+PACE_results['SarkarMetric'] = SarkarMetric_fromMatrices(PACE_estimate, clustering_matrix)
 
 ########################################################
 ########### PACE with threshold
 PACE_object.applyThresholdToEstimate(threshold=0.5)
-clustering_matrix_threshold = PACE_object.result_estimate_threshold
+PACE_estimate_threshold = PACE_object.result_estimate_threshold
 print(' Result from PACE with threshold:')
-print(clustering_matrix_threshold)
-# print(' Metric: ', SarkarMetric_matrix(clustering_matrix_threshold, clustering_matrix))
+print(PACE_estimate_threshold)
+PACE_results['SarkarMetric_threshold'] = SarkarMetric_fromMatrices(PACE_estimate_threshold, clustering_matrix)
 
 #######################################################
 ############## GALE
