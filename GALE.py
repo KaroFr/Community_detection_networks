@@ -42,16 +42,16 @@ class GALE:
     """
 
     def get_values(self):
-        var_dict = {'ID': self.ID,
-                    'n_nodes': self.n_nodes,
-                    'n_clusters': self.K,
-                    'algorithm': self.algorithm,
-                    'subgraph_sel_alg': self.subgraph_selection_alg,
-                    'n_subgraphs': self.T,
-                    'GALE_tau': self.tau,
-                    'traversal_threshold': self.traversal_threshold,
-                    }
-        return var_dict
+        var_df = pd.DataFrame([{'ID': self.ID,
+                                'n_nodes': self.n_nodes,
+                                'n_clusters': self.K,
+                                'algorithm': self.algorithm,
+                                'subgraph_sel_alg': self.subgraph_selection_alg,
+                                'n_subgraphs': self.T,
+                                'GALE_tau': self.tau,
+                                'traversal_threshold': self.traversal_threshold,
+                                }])
+        return var_df
 
     """
     Random selection of subgraphs 
@@ -168,7 +168,6 @@ class GALE:
     def alignLables(self):
         n_nodes = self.n_nodes
         K = self.K
-        subgraphs = self.subgraphs['subgraphs']
         subgraphs_clustered = self.subgraphs['clustering_result']
         sequence = self.sequence
         indices = self.subgraphs['indices']
@@ -234,7 +233,8 @@ class GALE:
             # updaate membership matrix
             numerator = membership_added * xi.reshape(-1, 1)
             denominator = sum_vector.reshape(-1, 1)
-            membership_estimate = np.divide(numerator, denominator, out=np.zeros_like(numerator), where=denominator != 0)
+            membership_estimate = np.divide(numerator, denominator, out=np.zeros_like(numerator),
+                                            where=denominator != 0)
 
             visited_indices.append(current_index)
             counter += 1
