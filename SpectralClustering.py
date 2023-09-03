@@ -1,7 +1,7 @@
 import numpy as np
 # for calculating eigenvalues and eigenvectors
 import pandas as pd
-from numpy.linalg import eig
+from numpy.linalg import eigh
 # KMeans
 from sklearn.cluster import KMeans
 
@@ -56,7 +56,7 @@ class SpectralClustering:
         time_start_SC = time.time()
         P_est = self.P_estimate
         n_clusters = self.K
-        evalues, evectors = eig(P_est)
+        evalues, evectors = eigh(P_est)
 
         # sort by Eigenvalues
         idx_asc = np.argsort(abs(evalues))  # np.argsort gives the inidices to sort ascending! We need descending
