@@ -19,7 +19,7 @@ class PACE:
     n_nodes = 0
 
     def __init__(self, adjacency, n_subgraphs, size_subgraphs, n_clusters, tau, ID=-1, subgraph_sel_alg='Random',
-                 parent_alg='SC'):
+                 parent_alg='SC', apply_threshold=False, threshold=0.5):
         self.ID = ID
         self.adj = adjacency
         self.T = n_subgraphs
@@ -29,6 +29,11 @@ class PACE:
         self.subgraph_selection_alg = subgraph_sel_alg
         self.parent_alg = parent_alg
         self.n_nodes = len(adjacency)
+        self.apply_threshold = apply_threshold
+        if apply_threshold:
+            self.threshold = threshold
+        else:
+            self.threshold = -1
 
     """
     get import values as dictionary
@@ -42,6 +47,8 @@ class PACE:
                                 'subgraph_sel_alg': self.subgraph_selection_alg,
                                 'n_subgraphs': self.T,
                                 'PACE_tau': self.tau,
+                                'apply_threshold': self.apply_threshold,
+                                'threshold': self.threshold
                                 }])
         return var_df
 
@@ -174,17 +181,26 @@ class PACE:
 
     def performPACE(self):
         print('Perform PACE:')
+        apply_threshold = self.apply_threshold
         self.selectSubgraphs()
         self.clusterSubgraphs()
         self.getMatrices()
         self.patchUp()
-        return self.clustering_matrix_estimate
+        if apply_threshold:
+            self.applyThresholdToEstimate()
+            estimate = self.clustering_matrix_estimate_threshold
+        else:
+            estimate = self.clustering_matrix_estimate
+        self.applyFinalClustering(estimate)
+        return self.clustering_labels_estimate
+
 
     """
     Apply a threshold to the result to get a binary clustering matrix
     """
 
-    def applyThresholdToEstimate(self, threshold=0.5):
+    def applyThresholdToEstimate(self):
+        threshold = self.threshold
         clust_mat = self.clustering_matrix_estimate
         clust_mat_thres = np.array([[1 if x > threshold else 0 for x in clust_mat[i]] for i in range(len(clust_mat))])
         self.clustering_matrix_estimate_threshold = clust_mat_thres
@@ -193,9 +209,8 @@ class PACE:
     Apply a final clustering algorithm to get the labels
     """
 
-    def applyFinalClustering(self):
-        clustering_matrix_estimate = self.clustering_matrix_estimate
+    def applyFinalClustering(self, estimate):
         n_clusters = self.K
-        SC_object = SpectralClustering(P_estimate=clustering_matrix_estimate, K=n_clusters)
+        SC_object = SpectralClustering(P_estimate=estimate, K=n_clusters)
         clustering_labels_estimate = SC_object.performSC()
         self.clustering_labels_estimate = clustering_labels_estimate
