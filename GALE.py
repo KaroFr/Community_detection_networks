@@ -52,6 +52,9 @@ class GALE:
                                 'base_alg': self.parent_alg,
                                 'n_subgraphs': self.T,
                                 'size_subgraphs': self.m,
+                                'PACE_tau': -1.0,
+                                'apply_threshold': False,
+                                'clustering_mat_threshold': -1.0,
                                 'GALE_tau': self.tau,
                                 'traversal_threshold': self.traversal_threshold,
                                 'runtime': self.runtime,
@@ -200,6 +203,8 @@ class GALE:
         while len(visited_indices) < T:
             # get current index of the subgraph from traversal
             current_index = sequence[counter]
+            # ToDo: If the traversal doesn't cover all subgraphs this throws an error: 'Indexerror:list index out of range'
+            #  -> maybe add all remaining subgraphs to the end of the sequence
 
             # get current subgraph: index set and clustering result
             indices_current_subgraph = indices[current_index]

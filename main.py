@@ -68,16 +68,16 @@ print('-----------------------------------------')
 print('------ perform PACE with threshold ------')
 print('-----------------------------------------')
 
-PACE_object = PACE(ID=ID, adjacency=adj_true, n_subgraphs=n_subgraphs, size_subgraphs=size_subgraphs, tau=PACE_tau, n_clusters=K, apply_threshold=True, threshold=PACE_threshold)
-PACE_estimate_labels = PACE_object.performPACE()
-PACE_estimate_clustering_matrix = PACE_object.clustering_matrix_estimate_threshold
+PACE_object_threshold = PACE(ID=ID, adjacency=adj_true, n_subgraphs=n_subgraphs, size_subgraphs=size_subgraphs, tau=PACE_tau, n_clusters=K, apply_threshold=True, threshold=PACE_threshold)
+PACE_estimate_labels_threshold = PACE_object_threshold.performPACE()
+PACE_estimate_clustering_matrix_threshold = PACE_object_threshold.clustering_matrix_estimate_threshold
 
-PACE_results_threshold = PACE_object.get_values()
+PACE_results_threshold = PACE_object_threshold.get_values()
 
 print(' Result from PACE:')
-print(PACE_estimate_labels)
-PACE_results_threshold['SarkarMetric'] = SarkarMetric_fromMatrices(PACE_estimate_clustering_matrix, clustering_mat_true)
-PACE_results_threshold['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromLabels(PACE_estimate_labels, clustering_labels_true)
+print(PACE_estimate_labels_threshold)
+PACE_results_threshold['SarkarMetric'] = SarkarMetric_fromMatrices(PACE_estimate_clustering_matrix_threshold, clustering_mat_true)
+PACE_results_threshold['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromLabels(PACE_estimate_labels_threshold, clustering_labels_true)
 
 #######################################################
 ############## GALE

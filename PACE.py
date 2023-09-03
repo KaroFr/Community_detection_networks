@@ -52,7 +52,9 @@ class PACE:
                                 'size_subgraphs': self.m,
                                 'PACE_tau': self.tau,
                                 'apply_threshold': self.apply_threshold,
-                                'threshold': self.threshold,
+                                'clustering_mat_threshold': self.threshold,
+                                'GALE_tau': -1.0,
+                                'traversal_threshold': -1.0,
                                 'runtime': self.runtime,
                                 }])
         return var_df

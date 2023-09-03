@@ -32,6 +32,15 @@ class SpectralClustering:
                                 'n_nodes': self.n_nodes,
                                 'n_clusters': self.K,
                                 'algorithm': self.algorithm,
+                                'subgraph_sel_alg': 'None',
+                                'base_alg': 'None',
+                                'n_subgraphs': 1,
+                                'size_subgraphs': self.n_nodes,
+                                'PACE_tau': -1.0,
+                                'apply_threshold': False,
+                                'clustering_mat_threshold': -1.0,
+                                'GALE_tau': -1.0,
+                                'traversal_threshold': -1.0,
                                 'runtime': self.runtime,
                                 }])
         return var_df
