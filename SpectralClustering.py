@@ -5,6 +5,8 @@ from numpy.linalg import eig
 # KMeans
 from sklearn.cluster import KMeans
 
+import time
+
 """
 Class to perform PACE
 """
@@ -13,6 +15,7 @@ Class to perform PACE
 class SpectralClustering:
     algorithm = 'SC'
     labels_pred = []
+    runtime = 0.0
 
     def __init__(self, P_estimate, K, ID=-1):
         self.ID = ID
@@ -29,6 +32,7 @@ class SpectralClustering:
                                 'n_nodes': self.n_nodes,
                                 'n_clusters': self.K,
                                 'algorithm': self.algorithm,
+                                'runtime': self.runtime,
                                 }])
         return var_df
 
@@ -40,6 +44,7 @@ class SpectralClustering:
     """
 
     def performSC(self):
+        time_start_SC = time.time()
         P_est = self.P_estimate
         n_clusters = self.K
         evalues, evectors = eig(P_est)
@@ -57,5 +62,8 @@ class SpectralClustering:
         # normalize Usubset
         y_pred_sc = KMeans(n_clusters=n_clusters, n_init=10).fit_predict(U)
         self.labels_pred = y_pred_sc
+
+        time_end_SC = time.time()
+        self.runtime = time_end_SC - time_start_SC
 
         return y_pred_sc

@@ -35,20 +35,26 @@ print('true labels')
 print(clustering_labels_true)
 
 #######################################################
+############## set paramteters
+n_subgraphs = 5
+size_subgraphs = 10
+
+PACE_tau = 6.0
+PACE_threshold = 0.5
+
+GALE_tau = 1
+
+#######################################################
 ############## PACE
 print('--------------------------')
 print('------ perform PACE ------')
 print('--------------------------')
-time_start_PACE = time.time()
 
-PACE_object = PACE(ID=ID, adjacency=adj_true, n_subgraphs=5, size_subgraphs=10, tau=6.0, n_clusters=K, apply_threshold=False)
+PACE_object = PACE(ID=ID, adjacency=adj_true, n_subgraphs=n_subgraphs, size_subgraphs=size_subgraphs, tau=PACE_tau, n_clusters=K, apply_threshold=False)
 PACE_estimate_labels = PACE_object.performPACE()
 PACE_estimate_clustering_matrix = PACE_object.clustering_matrix_estimate
 
-time_end_PACE = time.time()
-
 PACE_results = PACE_object.get_values()
-PACE_results['time'] = time_end_PACE - time_start_PACE
 
 print(' Result from PACE:')
 print(PACE_estimate_labels)
@@ -61,16 +67,12 @@ ID += 1
 print('-----------------------------------------')
 print('------ perform PACE with threshold ------')
 print('-----------------------------------------')
-time_start_PACE = time.time()
 
-PACE_object = PACE(ID=ID, adjacency=adj_true, n_subgraphs=5, size_subgraphs=10, tau=6.0, n_clusters=K, apply_threshold=True, threshold=0.5)
+PACE_object = PACE(ID=ID, adjacency=adj_true, n_subgraphs=n_subgraphs, size_subgraphs=size_subgraphs, tau=PACE_tau, n_clusters=K, apply_threshold=True, threshold=PACE_threshold)
 PACE_estimate_labels = PACE_object.performPACE()
 PACE_estimate_clustering_matrix = PACE_object.clustering_matrix_estimate_threshold
 
-time_end_PACE = time.time()
-
 PACE_results_threshold = PACE_object.get_values()
-PACE_results_threshold['time'] = time_end_PACE - time_start_PACE
 
 print(' Result from PACE:')
 print(PACE_estimate_labels)
@@ -83,19 +85,18 @@ ID += 1
 print('--------------------------')
 print('------ perform GALE ------')
 print('--------------------------')
-time_start_GALE = time.time()
 
-GALE_object = GALE(ID=ID, adjacency=adj_true, n_subgraphs=5, size_subgraphs=10, tau=1, n_clusters=K)
-GALE_estimate = GALE_object.performGALE()
-
-time_end_GALE = time.time()
+GALE_object = GALE(ID=ID, adjacency=adj_true, n_subgraphs=n_subgraphs, size_subgraphs=size_subgraphs, tau=GALE_tau, n_clusters=K)
+GALE_estimate_membership_matrix = GALE_object.performGALE()
+GALE_estimate_clustering_matrix = getClusteringMatrix(GALE_estimate_membership_matrix)
 
 GALE_results = GALE_object.get_values()
-GALE_results['time'] = time_end_GALE - time_start_GALE
 
 print(' Result from GALE:')
-print(np.round(GALE_estimate, 2))
-GALE_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromMatrices(GALE_estimate, membership_mat_true)
+print(np.round(GALE_estimate_membership_matrix, 2))
+
+GALE_results['SarkarMetric'] = SarkarMetric_fromMatrices(GALE_estimate_clustering_matrix, clustering_mat_true)
+GALE_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromMatrices(GALE_estimate_membership_matrix, membership_mat_true)
 
 ########################################################
 ########### Spectral Clustering
@@ -103,14 +104,10 @@ ID += 1
 print('--------------------------')
 print('------ perform SC ------')
 print('--------------------------')
-time_start_SC = time.time()
 SC_object = SpectralClustering(ID=ID, P_estimate=adj_true, K=K)
 SC_estimate = SC_object.performSC()
 
-time_end_SC = time.time()
-
 SC_results = SC_object.get_values()
-SC_results['time'] = time_end_SC - time_start_SC
 
 print(' Result from SC:')
 print(SC_estimate)

@@ -4,6 +4,7 @@ from SpectralClustering import SpectralClustering
 from Helpers import getMembershipMatrix
 from Match import match
 from functools import reduce
+import time
 
 # stochastic block model
 import networkx as nx
@@ -22,6 +23,7 @@ class GALE:
     sequence = []
     sequence_weighted = []
     membership_estimate = np.array([])
+    runtime = 0.0
 
     def __init__(self, adjacency, n_subgraphs, size_subgraphs, n_clusters, tau, ID=-1, subgraph_sel_alg='Random',
                  parent_alg='SC'):
@@ -47,9 +49,12 @@ class GALE:
                                 'n_clusters': self.K,
                                 'algorithm': self.algorithm,
                                 'subgraph_sel_alg': self.subgraph_selection_alg,
+                                'base_alg': self.parent_alg,
                                 'n_subgraphs': self.T,
+                                'size_subgraphs': self.m,
                                 'GALE_tau': self.tau,
                                 'traversal_threshold': self.traversal_threshold,
+                                'runtime': self.runtime,
                                 }])
         return var_df
 
@@ -83,7 +88,7 @@ class GALE:
 
         # load data into a DataFrame object:
         self.subgraphs = pd.DataFrame(data)
-        print(' PACE: Selected T =', T, ' subgraphs of size m =', m)
+        print(' GALE: Selected T =', T, ' subgraphs of size m =', m)
 
     """
     Perform Clustering on each subgraph 
@@ -107,7 +112,7 @@ class GALE:
 
         subgraphs_for_clustering["clustering_result"] = clustering_results
         self.subgraphs = subgraphs_for_clustering
-        print(' PACE: Performed clustering algorithm', parent_alg, 'on all subgraphs for K =', n_clusters, 'clusters')
+        print(' GALE: Performed clustering algorithm', parent_alg, 'on all subgraphs for K =', n_clusters, 'clusters')
 
     """
     Get a traversal through all the subgraphs
@@ -247,8 +252,11 @@ class GALE:
 
     def performGALE(self):
         print('Perform GALE:')
+        time_start_GALE = time.time()
         self.selectSubgraphs()
         self.clusterSubgraphs()
         self.getTraversal()
         self.alignLables()
+        time_end_GALE = time.time()
+        self.runtime = time_end_GALE - time_start_GALE
         return self.membership_estimate
