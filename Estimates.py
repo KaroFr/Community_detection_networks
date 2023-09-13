@@ -1,8 +1,4 @@
 import numpy as np
-# for calculating eigenvalues and eigenvectors
-from numpy.linalg import eig
-# KMeans
-from sklearn.cluster import KMeans
 
 """
 get the normalized Graph Laplacian of a matrix

@@ -23,16 +23,16 @@ except FileNotFoundError:
 print('--------------------------')
 print('------ simulate SBM ------')
 print('--------------------------')
-K = 3
-s = 4
+K = 5
+s = 30
 r = 0.3
 p = 0.6
 
 adj_true, clustering_labels_true = simulate_SBM_2(K, s, r, p)
 membership_mat_true = getMembershipMatrix(clustering_labels_true)
 clustering_mat_true = getClusteringMatrix(membership_mat_true)
-print('true labels')
-print(clustering_labels_true)
+#print('true labels')
+#print(clustering_labels_true)
 
 #######################################################
 ############## set paramteters
@@ -56,8 +56,8 @@ PACE_estimate_clustering_matrix = PACE_object.clustering_matrix_estimate
 
 PACE_results = PACE_object.get_values()
 
-print(' Result from PACE:')
-print(PACE_estimate_labels)
+#print(' Result from PACE:')
+#print(PACE_estimate_labels)
 PACE_results['SarkarMetric'] = SarkarMetric_fromMatrices(PACE_estimate_clustering_matrix, clustering_mat_true)
 PACE_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromLabels(PACE_estimate_labels, clustering_labels_true)
 
@@ -74,8 +74,8 @@ PACE_estimate_clustering_matrix_threshold = PACE_object_threshold.clustering_mat
 
 PACE_results_threshold = PACE_object_threshold.get_values()
 
-print(' Result from PACE:')
-print(PACE_estimate_labels_threshold)
+#print(' Result from PACE:')
+#print(PACE_estimate_labels_threshold)
 PACE_results_threshold['SarkarMetric'] = SarkarMetric_fromMatrices(PACE_estimate_clustering_matrix_threshold, clustering_mat_true)
 PACE_results_threshold['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromLabels(PACE_estimate_labels_threshold, clustering_labels_true)
 
@@ -86,17 +86,36 @@ print('--------------------------')
 print('------ perform GALE ------')
 print('--------------------------')
 
-GALE_object = GALE(ID=ID, adjacency=adj_true, n_subgraphs=n_subgraphs, size_subgraphs=size_subgraphs, tau=GALE_tau, n_clusters=K)
+GALE_object = GALE(ID=ID, adjacency=adj_true, n_subgraphs=n_subgraphs, size_subgraphs=size_subgraphs, tau=GALE_tau, n_clusters=K, weightedTraversal=False)
 GALE_estimate_membership_matrix = GALE_object.performGALE()
 GALE_estimate_clustering_matrix = getClusteringMatrix(GALE_estimate_membership_matrix)
 
-GALE_results = GALE_object.get_values()
+GALE_results_1 = GALE_object.get_values()
 
-print(' Result from GALE:')
-print(np.round(GALE_estimate_membership_matrix, 2))
+#print(' Result from GALE:')
+#print(GALE_estimate_membership_matrix)
 
-GALE_results['SarkarMetric'] = SarkarMetric_fromMatrices(GALE_estimate_clustering_matrix, clustering_mat_true)
-GALE_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromMatrices(GALE_estimate_membership_matrix, membership_mat_true)
+GALE_results_1['SarkarMetric'] = SarkarMetric_fromMatrices(GALE_estimate_clustering_matrix, clustering_mat_true)
+GALE_results_1['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromMatrices(GALE_estimate_membership_matrix, membership_mat_true)
+
+#######################################################
+############## GALE with weighted traversal
+ID += 1
+print('--------------------------')
+print('------ perform GALE ------')
+print('--------------------------')
+
+GALE_object = GALE(ID=ID, adjacency=adj_true, n_subgraphs=n_subgraphs, size_subgraphs=size_subgraphs, tau=GALE_tau, n_clusters=K, weightedTraversal=True)
+GALE_estimate_membership_matrix = GALE_object.performGALE()
+GALE_estimate_clustering_matrix = getClusteringMatrix(GALE_estimate_membership_matrix)
+
+GALE_results_2 = GALE_object.get_values()
+
+#print(' Result from GALE:')
+#print(GALE_estimate_membership_matrix)
+
+GALE_results_2['SarkarMetric'] = SarkarMetric_fromMatrices(GALE_estimate_clustering_matrix, clustering_mat_true)
+GALE_results_2['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromMatrices(GALE_estimate_membership_matrix, membership_mat_true)
 
 ########################################################
 ########### Spectral Clustering
@@ -109,14 +128,14 @@ SC_estimate = SC_object.performSC()
 
 SC_results = SC_object.get_values()
 
-print(' Result from SC:')
-print(SC_estimate)
+#print(' Result from SC:')
+#print(SC_estimate)
 SC_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromLabels(SC_estimate, clustering_labels_true)
 SC_results['SarkarMetric'] = SarkarMetric_fromLabels(SC_estimate, clustering_labels_true)
 
 try:
-    df = pd.concat([results_df, PACE_results, PACE_results_threshold, GALE_results, SC_results], ignore_index=True)
+    df = pd.concat([results_df, PACE_results, PACE_results_threshold, GALE_results_1, GALE_results_2, SC_results], ignore_index=True)
 except NameError:
-    df = pd.concat([PACE_results, PACE_results_threshold, GALE_results, SC_results], ignore_index=True)
+    df = pd.concat([PACE_results, PACE_results_threshold, GALE_results_1, GALE_results_2, SC_results], ignore_index=True)
 
 df.to_csv('results/results_csv.csv', sep=';', index=False)
