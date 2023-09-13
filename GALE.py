@@ -301,6 +301,18 @@ class GALE:
         print('GALE -> alignLabels: number of unused subgraphs:', counter_unused_subgraphs)
 
     """
+    Reduce the non binary membership matrix to a binary matrix 
+    by setting the maximal entry to one
+    - for ties take the first occurance of the maximal entry
+    """
+
+    def getBinaryMembershipmatrix(self):
+        membership_estimate = self.membership_estimate
+        binary_membership_estimate = np.zeros_like(membership_estimate)
+        binary_membership_estimate[np.arange(len(membership_estimate)), membership_estimate.argmax(1)] = 1
+        self.membership_estimate = binary_membership_estimate
+
+    """
     Perform the whole algorithm
     """
 
@@ -314,6 +326,7 @@ class GALE:
         else:
             self.getNormalTraversal()
         self.alignLabels()
+        self.getBinaryMembershipmatrix()
         time_end_GALE = time.time()
         self.runtime = time_end_GALE - time_start_GALE
         return self.membership_estimate
