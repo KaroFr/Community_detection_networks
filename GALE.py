@@ -21,12 +21,12 @@ class GALE:
     subgraphs = pd.DataFrame([])
     n_nodes = 0
     sequence = []
-    sequence_weighted = []
     membership_estimate = np.array([])
     runtime = 0.0
+    n_unused_subgraphs = 0
 
     def __init__(self, adjacency, n_subgraphs, size_subgraphs, n_clusters, tau, ID=-1, subgraph_sel_alg='Random',
-                 parent_alg='SC'):
+                 parent_alg='SC', weightedTraversal=True):
         self.ID = ID
         self.adj = adjacency
         self.T = n_subgraphs
@@ -38,6 +38,7 @@ class GALE:
         n_nodes = len(adjacency)
         self.n_nodes = n_nodes
         self.traversal_threshold = np.ceil(size_subgraphs ** 2 / (2 * n_nodes))
+        self.weightedTraversal = weightedTraversal
 
     """
     get import values as dictionary
@@ -56,6 +57,8 @@ class GALE:
                                 'apply_threshold': False,
                                 'clustering_mat_threshold': -1.0,
                                 'GALE_tau': self.tau,
+                                'GALE_weighted_traversal': self.weightedTraversal,
+                                'GALE_n_unused_subgraphs': self.n_unused_subgraphs,
                                 'traversal_threshold': self.traversal_threshold,
                                 'runtime': self.runtime,
                                 }])
@@ -118,12 +121,44 @@ class GALE:
         print(' GALE: Performed clustering algorithm', parent_alg, 'on all subgraphs for K =', n_clusters, 'clusters')
 
     """
+        Get a traversal through all the subgraphs
+        sequence_weighted = traversal with overlap as weight and no threshold
+        """
+
+    def getWeightedTraversal(self):
+        T = self.T
+        indices = self.subgraphs['indices']
+
+        # construct graph of the subgraphs based on overlap
+        # only filled on upper triangle -> that suffices to calculate the spanning tree
+        adj_subgraphs_weighted = np.zeros((T, T))
+        for t1 in np.arange(T):
+            for t2 in np.arange(t1 + 1, T):
+                overlap = np.intersect1d(indices[t1], indices[t2])
+                n_overlap = len(overlap)
+                adj_subgraphs_weighted[t1][t2] = n_overlap
+
+        # get the spanning tree
+        Graph_subgraphs_weighted = nx.Graph(adj_subgraphs_weighted)
+        s_tree_weighted = nx.maximum_spanning_tree(Graph_subgraphs_weighted)
+
+        # get the traversal (depth-first-search)
+        traversal_weighted = np.array(list(nx.dfs_edges(s_tree_weighted)))
+
+        # for weighted traversal
+        sequence_weighted = [traversal_weighted[0][0]]
+        sequence_weighted.extend(traversal_weighted[:, 1])
+        ind = np.unique(sequence_weighted, return_index=True)[1]
+        sequence_weighted_unique = [sequence_weighted[i] for i in sorted(ind)]
+
+        self.sequence = sequence_weighted_unique
+
+    """
     Get a traversal through all the subgraphs
     sequence = the traversal by Mukherjee et al
-    seqeunce_weighted = traversal with overlap as weight and no threshold
     """
 
-    def getTraversal(self):
+    def getNormalTraversal(self):
         m_thres = self.traversal_threshold
         T = self.T
         indices = self.subgraphs['indices']
@@ -131,13 +166,11 @@ class GALE:
         # construct graph of the subgraphs based on overlap
         # only filled on upper triangle -> that suffices to calculate the spanning tree
         adj_subgraphs = np.zeros((T, T))
-        adj_subgraphs_weighted = np.zeros((T, T))
         for t1 in np.arange(T):
             for t2 in np.arange(t1 + 1, T):
                 # if overlap is big enough there is a connection
                 overlap = np.intersect1d(indices[t1], indices[t2])
                 n_overlap = len(overlap)
-                adj_subgraphs_weighted[t1][t2] = n_overlap
                 if n_overlap > m_thres:
                     adj_subgraphs[t1][t2] = 1
 
@@ -145,12 +178,8 @@ class GALE:
         Graph_subgraphs = nx.Graph(adj_subgraphs)
         s_tree = nx.maximum_spanning_tree(Graph_subgraphs)
 
-        Graph_subgraphs_weighted = nx.Graph(adj_subgraphs_weighted)
-        s_tree_weighted = nx.maximum_spanning_tree(Graph_subgraphs_weighted)
-
         # get the traversal (depth-first-search)
         traversal = np.array(list(nx.dfs_edges(s_tree)))
-        traversal_weighted = np.array(list(nx.dfs_edges(s_tree_weighted)))
 
         # get the sequence to traverse
         sequence = [traversal[0][0]]
@@ -160,20 +189,13 @@ class GALE:
         ind = np.unique(sequence, return_index=True)[1]
         sequence_unique = [sequence[i] for i in sorted(ind)]
 
-        # for weighted traversal
-        sequence_weighted = [traversal_weighted[0][0]]
-        sequence_weighted.extend(traversal_weighted[:, 1])
-        ind = np.unique(sequence_weighted, return_index=True)[1]
-        sequence_weighted_unique = [sequence_weighted[i] for i in sorted(ind)]
-
         self.sequence = sequence_unique
-        self.sequence_weighted = sequence_weighted_unique
 
     """
     Align the subgraphs
     """
 
-    def alignLables(self):
+    def alignLabels(self):
         n_nodes = self.n_nodes
         K = self.K
         subgraphs_clustered = self.subgraphs['clustering_result']
@@ -181,6 +203,14 @@ class GALE:
         indices = self.subgraphs['indices']
         T = self.T
         tau = self.tau
+        traversal_threshold = self.traversal_threshold
+        weightedTraversal = self.weightedTraversal
+
+        # count how many of the subgraphs are not used because the overlap is too small
+        counter_unused_subgraphs = 0
+
+        # number of subgraphs in the traversal
+        n_subgraphs = len(sequence)
 
         # get first subgraph: index set and clustering result
         current_index = sequence[0]
@@ -195,12 +225,12 @@ class GALE:
         current_membership_mat_extended = np.zeros((n_nodes, K))
         current_membership_mat_extended[indices_current_subgraph] = current_membership_mat
 
-        # inital estimate and added memberships
+        # initial estimate and added memberships
         membership_estimate = current_membership_mat_extended.copy()
         membership_added = current_membership_mat_extended.copy()
 
         counter = 1
-        while len(visited_indices) < T:
+        while len(visited_indices) < n_subgraphs:
             # get current index of the subgraph from traversal
             current_index = sequence[counter]
             # ToDo: If the traversal doesn't cover all subgraphs this throws an error: 'Indexerror:list index out of range'
@@ -212,12 +242,22 @@ class GALE:
 
             # get the union of indices of subgraphs before that index
             visited_index_sets = [indices[i] for i in visited_indices]
-            indices_previous_subgraphs = reduce(np.union1d, (visited_index_sets))
+            indices_previous_subgraphs = reduce(np.union1d, visited_index_sets)
 
             # calculate the overlap to all previously visited subgraphs
             overlap = np.intersect1d(indices_current_subgraph, indices_previous_subgraphs)
 
-            # ToDo: maybe do another check here, if the overlap is to small, go to next point and do this one later
+            # if overlap is to small, go to next subgraph and visit this one later again
+            # this step is only necessary for the weighted traversal
+            if weightedTraversal and len(overlap) < traversal_threshold:
+                sequence.append(current_index)
+                counter += 1
+                # counter > T means that the current subgraph has been visited before
+                # if the overlap is still to small, we discard it as information
+                if counter > T:
+                    counter_unused_subgraphs += 1
+                    visited_indices.append(current_index)
+                continue
 
             # get membership matrices
             current_membership_mat = getMembershipMatrix(current_subgraph_clustered)
@@ -240,7 +280,7 @@ class GALE:
             xi = np.array([1 if sum_vector[j] >= tau else 0 for j in range(len(sum_vector))])
             # Todo: tau needs to be a vector not single variable
 
-            # updaate membership matrix
+            # update membership matrix
             numerator = membership_added * xi.reshape(-1, 1)
             denominator = sum_vector.reshape(-1, 1)
             membership_estimate = np.divide(numerator, denominator, out=np.zeros_like(numerator),
@@ -249,7 +289,16 @@ class GALE:
             visited_indices.append(current_index)
             counter += 1
 
+        # save the estimate (result of GALE)
         self.membership_estimate = membership_estimate
+
+        # count the number of unused subgraphs for the unweighted traversal
+        if not weightedTraversal:
+            counter_unused_subgraphs = T - n_subgraphs
+
+        # save the number of unused subgraphs
+        self.n_unused_subgraphs = counter_unused_subgraphs
+        print('GALE -> alignLabels: number of unused subgraphs:', counter_unused_subgraphs)
 
     """
     Perform the whole algorithm
@@ -260,8 +309,11 @@ class GALE:
         time_start_GALE = time.time()
         self.selectSubgraphs()
         self.clusterSubgraphs()
-        self.getTraversal()
-        self.alignLables()
+        if self.weightedTraversal:
+            self.getWeightedTraversal()
+        else:
+            self.getNormalTraversal()
+        self.alignLabels()
         time_end_GALE = time.time()
         self.runtime = time_end_GALE - time_start_GALE
         return self.membership_estimate

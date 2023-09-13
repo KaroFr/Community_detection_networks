@@ -54,6 +54,8 @@ class PACE:
                                 'apply_threshold': self.apply_threshold,
                                 'clustering_mat_threshold': self.threshold,
                                 'GALE_tau': -1.0,
+                                'GALE_weighted_traversal': False,
+                                'GALE_n_unused_subgraphs': -1,
                                 'traversal_threshold': -1.0,
                                 'runtime': self.runtime,
                                 }])
