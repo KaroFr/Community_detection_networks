@@ -328,5 +328,5 @@ class GALE:
         self.alignLabels()
         self.getBinaryMembershipmatrix()
         time_end_GALE = time.time()
-        self.runtime = time_end_GALE - time_start_GALE
+        self.runtime = np.round(time_end_GALE - time_start_GALE, 4)
         return self.membership_estimate

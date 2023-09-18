@@ -33,7 +33,7 @@ def simulate_SBM_1(k, alpha, n_min, n_max):
     adj = adj + adj.transpose()
 
     # array of true labels
-    y_true = np.repeat([i for i in range(k)], n_k)
+    y_true = np.repeat([i for i in np.arange(k)], n_k)
 
     return adj, y_true
 
@@ -52,7 +52,7 @@ def simulate_SBM_2(k, s, r, p):
     com_sizes = [s for _ in range(k)]
 
     # Connectivity Matrix
-    r_matrix = np.array([r] * k * k).reshape((k, k))
+    r_matrix = np.full((k, k), r)
     p_matrix = np.diag(np.array([p] * k))
     B = r_matrix + p_matrix
 

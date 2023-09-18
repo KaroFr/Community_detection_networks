@@ -75,6 +75,6 @@ class SpectralClustering:
         self.labels_pred = y_pred_sc
 
         time_end_SC = time.time()
-        self.runtime = time_end_SC - time_start_SC
+        self.runtime = np.round(time_end_SC - time_start_SC, 4)
 
         return y_pred_sc
