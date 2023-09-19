@@ -7,6 +7,9 @@ from numpy.linalg import norm
 # for the metric of Lei Rinaldo - To iterate over permutation matrices
 import itertools
 
+# progress bar for the Lei Rinaldo Metrics
+from tqdm import tqdm
+
 """
 Input: Two arrays of clustering labels
 Output: Difference of the confusion matrices in L0 Norm
@@ -77,7 +80,7 @@ def LeiRinaldoMetric_1_fromLabels(clustering_labels_estimate, clustering_labels_
     # initiate an array for the differences
     L0_differences = []
     # for loop over all permutation matrices
-    for membership_est_perm in itertools.permutations(membership_est):
+    for membership_est_perm in tqdm(itertools.permutations(membership_est)):
         diff_mat = membership_est_perm - membership_true
         L0_differences.append(np.count_nonzero(diff_mat))
     # get minimum difference
@@ -101,7 +104,7 @@ def LeiRinaldoMetric_1_fromMatrices(membership_est, membership_true):
     # initiate an array for the differences
     L0_differences = []
     # for loop over all permutation matrices
-    for membership_est_perm in itertools.permutations(membership_est):
+    for membership_est_perm in tqdm(itertools.permutations(membership_est)):
         diff_mat = membership_est_perm - membership_true
         L0_differences.append(np.count_nonzero(diff_mat))
     # get minimum difference
