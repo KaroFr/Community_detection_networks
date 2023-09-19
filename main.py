@@ -23,8 +23,8 @@ except FileNotFoundError:
 print('--------------------------')
 print('------ simulate SBM ------')
 print('--------------------------')
-K = 5
-s = 30
+K = 8
+s = 10000
 r = 0.3
 p = 0.6
 
@@ -35,9 +35,9 @@ clustering_mat_true = getClusteringMatrix(membership_mat_true)
 #print(clustering_labels_true)
 
 #######################################################
-############## set paramteters
-n_subgraphs = 5
-size_subgraphs = 10
+############## set parameters
+n_subgraphs = 10
+size_subgraphs = int(K*s/4)
 
 PACE_tau = 6.0
 PACE_threshold = 0.5
@@ -58,9 +58,14 @@ PACE_results = PACE_object.get_values()
 
 #print(' Result from PACE:')
 #print(PACE_estimate_labels)
+start_time_metric = time.time()
 PACE_results['SarkarMetric'] = SarkarMetric_fromMatrices(PACE_estimate_clustering_matrix, clustering_mat_true)
+second_time_metric = time.time()
 PACE_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromLabels(PACE_estimate_labels, clustering_labels_true)
+end_time_metric = time.time()
+print('Calculating the metrics took ', np.round(second_time_metric - start_time_metric, 4), ' and ', np.round(end_time_metric - second_time_metric, 4), ' seconds')
 
+del PACE_object, PACE_estimate_labels, PACE_estimate_clustering_matrix
 ########################################################
 ########### PACE with threshold
 ID += 1
@@ -76,9 +81,15 @@ PACE_results_threshold = PACE_object_threshold.get_values()
 
 #print(' Result from PACE:')
 #print(PACE_estimate_labels_threshold)
+start_time_metric = time.time()
 PACE_results_threshold['SarkarMetric'] = SarkarMetric_fromMatrices(PACE_estimate_clustering_matrix_threshold, clustering_mat_true)
+second_time_metric = time.time()
 PACE_results_threshold['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromLabels(PACE_estimate_labels_threshold, clustering_labels_true)
+end_time_metric = time.time()
+print('Calculating the metrics took ', np.round(second_time_metric - start_time_metric, 4), ' and ', np.round(end_time_metric - second_time_metric, 4), ' seconds')
 
+
+del PACE_object_threshold, PACE_estimate_labels_threshold, PACE_estimate_clustering_matrix_threshold
 #######################################################
 ############## GALE
 ID += 1
@@ -95,9 +106,15 @@ GALE_results_1 = GALE_object.get_values()
 #print(' Result from GALE:')
 #print(GALE_estimate_membership_matrix)
 
+start_time_metric = time.time()
 GALE_results_1['SarkarMetric'] = SarkarMetric_fromMatrices(GALE_estimate_clustering_matrix, clustering_mat_true)
+second_time_metric = time.time()
 GALE_results_1['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromMatrices(GALE_estimate_membership_matrix, membership_mat_true)
+end_time_metric = time.time()
+print('Calculating the metrics took ', np.round(second_time_metric - start_time_metric, 4), ' and ', np.round(end_time_metric - second_time_metric, 4), ' seconds')
 
+
+del GALE_object, GALE_estimate_membership_matrix, GALE_estimate_clustering_matrix
 #######################################################
 ############## GALE with weighted traversal
 ID += 1
@@ -114,9 +131,15 @@ GALE_results_2 = GALE_object.get_values()
 #print(' Result from GALE:')
 #print(GALE_estimate_membership_matrix)
 
+start_time_metric = time.time()
 GALE_results_2['SarkarMetric'] = SarkarMetric_fromMatrices(GALE_estimate_clustering_matrix, clustering_mat_true)
+second_time_metric = time.time()
 GALE_results_2['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromMatrices(GALE_estimate_membership_matrix, membership_mat_true)
+end_time_metric = time.time()
+print('Calculating the metrics took ', np.round(second_time_metric - start_time_metric, 4), ' and ', np.round(end_time_metric - second_time_metric, 4), ' seconds')
 
+
+del GALE_object, GALE_estimate_membership_matrix, GALE_estimate_clustering_matrix
 ########################################################
 ########### Spectral Clustering
 ID += 1
@@ -130,8 +153,15 @@ SC_results = SC_object.get_values()
 
 #print(' Result from SC:')
 #print(SC_estimate)
-SC_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromLabels(SC_estimate, clustering_labels_true)
+start_time_metric = time.time()
 SC_results['SarkarMetric'] = SarkarMetric_fromLabels(SC_estimate, clustering_labels_true)
+second_time_metric = time.time()
+SC_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromLabels(SC_estimate, clustering_labels_true)
+end_time_metric = time.time()
+print('Calculating the metrics took ', np.round(second_time_metric - start_time_metric, 4), ' and ', np.round(end_time_metric - second_time_metric, 4), ' seconds')
+
+
+del SC_object, SC_estimate
 
 try:
     df = pd.concat([results_df, PACE_results, PACE_results_threshold, GALE_results_1, GALE_results_2, SC_results], ignore_index=True)
