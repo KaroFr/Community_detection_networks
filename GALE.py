@@ -298,7 +298,7 @@ class GALE:
 
         # save the number of unused subgraphs
         self.n_unused_subgraphs = counter_unused_subgraphs
-        print('GALE -> alignLabels: number of unused subgraphs:', counter_unused_subgraphs)
+        print(' GALE: ran alignLabels: number of unused subgraphs:', counter_unused_subgraphs)
 
     """
     Reduce the non binary membership matrix to a binary matrix 
@@ -311,6 +311,7 @@ class GALE:
         binary_membership_estimate = np.zeros_like(membership_estimate)
         binary_membership_estimate[np.arange(len(membership_estimate)), membership_estimate.argmax(1)] = 1
         self.membership_estimate = binary_membership_estimate
+        print(' GALE: Reduced result to binary membership matrix')
 
     """
     Perform the whole algorithm

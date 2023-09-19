@@ -77,4 +77,5 @@ class SpectralClustering:
         time_end_SC = time.time()
         self.runtime = np.round(time_end_SC - time_start_SC, 4)
 
+        print(' SC: Finished Spectral Clustering')
         return y_pred_sc
