@@ -14,6 +14,7 @@ class PACE:
     subgraph_selection_alg = 'Random'
     parent_alg = 'SC'
     subgraphs = pd.DataFrame([])
+    counting_matrix = np.array([])
     clustering_matrix_estimate = np.array([])
     clustering_matrix_estimate_threshold = np.array([])
     clustering_labels_estimate = np.array([])
@@ -127,14 +128,11 @@ class PACE:
         subgraphs_to_add_matrices = self.subgraphs
         n_nodes = self.n_nodes
 
-        clustering_matrices = []
-        counting_matrices = []
+        # initiate a clustering/counting matrix containing zeros
+        clustering_matrix = np.zeros([n_nodes, n_nodes])
+        counting_matrix = np.zeros([n_nodes, n_nodes], dtype=int)
 
         for index, subgraph in subgraphs_to_add_matrices.iterrows():
-            # initiate a clustering/counting matrix containing zeros
-            clustering_matrix = np.zeros(n_nodes * n_nodes).reshape(n_nodes, n_nodes)
-            counting_matrix = np.zeros(n_nodes * n_nodes).reshape(n_nodes, n_nodes)
-
             # get the according index set and the grid
             index_set = subgraph["indices"]
             ixgrid = np.ix_(index_set, index_set)
@@ -146,19 +144,16 @@ class PACE:
 
             # get counting matrix of the subgraph with only ones
             m = len(index_set)
-            counting_matrix_subgraph = np.ones((m, m))
+            counting_matrix_subgraph = np.ones([m, m], dtype=int)
 
             # write the clustering matrix of the subgraph into the zero matrix
-            clustering_matrix[ixgrid] = clustering_matrix_subgraph
-            clustering_matrices.append(clustering_matrix)
+            clustering_matrix[ixgrid] += clustering_matrix_subgraph
 
             # write the clustering matrix of the subgraph into the zero matrix
-            counting_matrix[ixgrid] = counting_matrix_subgraph
-            counting_matrices.append(counting_matrix)
+            counting_matrix[ixgrid] += counting_matrix_subgraph
 
-        subgraphs_to_add_matrices["Clustering_matrices"] = clustering_matrices
-        subgraphs_to_add_matrices["Counting_matrices"] = counting_matrices
-        self.subgraphs = subgraphs_to_add_matrices
+        self.clustering_matrix_estimate = clustering_matrix
+        self.counting_matrix = counting_matrix
 
     """
     combine the results from the different subgraphs
@@ -167,15 +162,12 @@ class PACE:
 
     def patchUp(self):
         tau = self.tau
-        subgraphs_to_patch_up = self.subgraphs
+        counting_matrix = self.counting_matrix
+        clustering_matrix = self.clustering_matrix_estimate
 
         # get counting matrix N
-        counting_matrix = sum(subgraphs_to_patch_up["Counting_matrices"])
         counting_matrix_tau = np.array(
             [[x if x > 1 else 0 for x in counting_matrix[i]] for i in range(len(counting_matrix))])
-
-        # get clustering matrix C
-        clustering_matrix = sum(subgraphs_to_patch_up["Clustering_matrices"])
 
         # average -> get estimate \hat{C}
         clustering_matrix_estimate = np.divide(clustering_matrix, counting_matrix_tau,
@@ -203,7 +195,7 @@ class PACE:
             estimate = self.clustering_matrix_estimate
         self.applyFinalClustering(estimate)
         time_end_PACE = time.time()
-        self.runtime = time_end_PACE - time_start_PACE
+        self.runtime = np.round(time_end_PACE - time_start_PACE, 4)
         return self.clustering_labels_estimate
 
 
@@ -227,3 +219,4 @@ class PACE:
         SC_object = SpectralClustering(P_estimate=estimate, K=n_clusters)
         clustering_labels_estimate = SC_object.performSC()
         self.clustering_labels_estimate = clustering_labels_estimate
+        print(' PACE: Applied final Spectral Clustering step')
