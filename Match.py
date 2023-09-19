@@ -4,7 +4,8 @@ import numpy as np
 Input:  Two membership matrices that need to be matched
         Both need to be of the same set of nodes!
         The order of the two doesn't matter
-Output: Best projection matrix to align the clusterings
+Output: Best permutation matrix to align the clusterings
+        The permutation matrix needs to be applied to membership_1!!
 """
 
 
