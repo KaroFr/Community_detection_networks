@@ -9,6 +9,7 @@ import itertools
 
 # progress bar for the Lei Rinaldo Metrics
 from tqdm import tqdm
+from Match import match
 
 """
 Input: Two arrays of clustering labels
@@ -91,8 +92,6 @@ def LeiRinaldoMetric_1_fromLabels(clustering_labels_estimate, clustering_labels_
 1. Metric suggested by Lei, Rinaldo
 Input: Two membership matrices
 Output: Error measure L of Lei, Rinaldo
-
-!!! I scaled it with 0.5 at the end
 """
 
 
@@ -109,6 +108,47 @@ def LeiRinaldoMetric_1_fromMatrices(membership_est, membership_true):
         L0_differences.append(np.count_nonzero(diff_mat))
     # get minimum difference
     return 0.5 * np.min(L0_differences) / n_nodes
+
+
+"""
+1. Metric suggested by Lei, Rinaldo
+Input: Two arrays of clustering labels
+Output: Error measure L of Lei, Rinaldo
+This one uses match to get the permutation matrix
+"""
+
+
+def LeiRinaldoMetric_1_fromLabels_match(clustering_labels_estimate, clustering_labels_true):
+    n_nodes = len(clustering_labels_true)
+    # get the according membership matrices \Theta and \hat{\Theta}
+    membership_est = getMembershipMatrix(clustering_labels_estimate)
+    membership_true = getMembershipMatrix(clustering_labels_true)
+
+    permutation_mat = match(membership_est, membership_true)
+    L0_diff = np.count_nonzero(membership_est @ permutation_mat - membership_true)
+
+    # get minimum difference
+    diff = 0.5 * L0_diff / n_nodes
+    return diff
+
+
+"""
+1. Metric suggested by Lei, Rinaldo
+Input: Two membership matrices
+Output: Error measure L of Lei, Rinaldo
+This one uses match to get the permutation matrix
+"""
+
+
+def LeiRinaldoMetric_1_fromMatrices_match(membership_est, membership_true):
+    n_nodes = len(membership_est)
+
+    permutation_mat = match(membership_est, membership_true)
+    L0_diff = np.count_nonzero(membership_est @ permutation_mat - membership_true)
+
+    # get minimum difference
+    diff = 0.5 * L0_diff / n_nodes
+    return diff
 
 
 """
