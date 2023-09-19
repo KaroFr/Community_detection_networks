@@ -14,7 +14,7 @@ def match(membership_1, membership_2):
     projection_mat = np.zeros((k, k))
 
     max_value = np.max(confusion_mat)
-    while max_value > 0:
+    while max_value >= 0:
         # find the first occurance of max_value in the confusion matrix
         row, col = np.argwhere(confusion_mat == max_value)[0]
 
