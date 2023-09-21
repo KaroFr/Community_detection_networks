@@ -267,7 +267,13 @@ class GALE:
             current_membership_mat_extended[indices_current_subgraph] = current_membership_mat
 
             # apply match algorithm (restrict to overlap)
-            projection_mat = match(current_membership_mat_extended[overlap], membership_estimate[overlap])
+            try:
+                projection_mat = match(current_membership_mat_extended[overlap], membership_estimate[overlap])
+            except IndexError:
+                counter_unused_subgraphs += 1
+                visited_indices.append(current_index)
+                counter += 1
+                continue
 
             # permutate current subgraph
             current_membership_mat_permutated = current_membership_mat_extended @ projection_mat
