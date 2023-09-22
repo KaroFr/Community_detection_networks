@@ -20,6 +20,7 @@ def getMembershipMatrix(clustering_labels):
         membership_matrix[index][node - min_cluster] = 1
     return membership_matrix
 
+
 """
 Input: membership_matrix
 Output: According clustering Matrix
@@ -30,6 +31,7 @@ def getClusteringMatrix(membership_matrix):
     clustering_matrix = membership_matrix @ membership_matrix.transpose()
     return clustering_matrix
 
+
 """
 Input: membership_matrix
 Output: According confusion Matrix
@@ -39,3 +41,25 @@ Output: According confusion Matrix
 def getConfusionMatrix(membership_matrix):
     confusion_matrix = membership_matrix.transpose() @ membership_matrix
     return confusion_matrix
+
+
+"""
+Input: membership_matrix
+Output: True if membership_matrix is indeed a membership matrix
+        False if not
+Test if (1) maximal entry of every row is 1
+        (2) every row sum equals 1
+        
+"""
+
+
+def isMembership(membership_matrix):
+    for row in np.arange(len(membership_matrix)):
+        max_entry_row = np.max(membership_matrix[row])
+        if max_entry_row != 1:
+            return False
+
+        sum_row = np.sum(membership_matrix[row])
+        if sum_row != 1:
+            return False
+    return True
