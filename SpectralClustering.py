@@ -36,6 +36,7 @@ class SpectralClustering:
                                 'base_alg': 'None',
                                 'n_subgraphs': 1,
                                 'size_subgraphs': self.n_nodes,
+                                'PACE_theta': -1.0,
                                 'PACE_tau': -1.0,
                                 'apply_threshold': False,
                                 'clustering_mat_threshold': -1.0,
@@ -77,5 +78,5 @@ class SpectralClustering:
         time_end_SC = time.time()
         self.runtime = np.round(time_end_SC - time_start_SC, 4)
 
-        print(' SC: Finished Spectral Clustering')
+        # print(' SC: Finished Spectral Clustering')
         return y_pred_sc

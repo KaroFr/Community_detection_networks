@@ -20,15 +20,16 @@ class PACE:
     clustering_labels_estimate = np.array([])
     n_nodes = 0
     runtime = 0.0
+    tau = 0.0
 
-    def __init__(self, adjacency, n_subgraphs, size_subgraphs, n_clusters, tau, ID=-1, subgraph_sel_alg='Random',
+    def __init__(self, adjacency, n_subgraphs, size_subgraphs, n_clusters, theta=0.4, ID=-1, subgraph_sel_alg='Random',
                  parent_alg='SC', apply_threshold=False, threshold=0.5):
         self.ID = ID
         self.adj = adjacency
         self.T = n_subgraphs
         self.m = size_subgraphs
         self.K = n_clusters
-        self.tau = tau
+        self.theta = theta
         self.subgraph_selection_alg = subgraph_sel_alg
         self.parent_alg = parent_alg
         self.n_nodes = len(adjacency)
@@ -51,6 +52,7 @@ class PACE:
                                 'base_alg': self.parent_alg,
                                 'n_subgraphs': self.T,
                                 'size_subgraphs': self.m,
+                                'PACE_theta': self.theta,
                                 'PACE_tau': self.tau,
                                 'apply_threshold': self.apply_threshold,
                                 'clustering_mat_threshold': self.threshold,
@@ -161,8 +163,9 @@ class PACE:
     """
 
     def patchUp(self):
-        tau = self.tau
         counting_matrix = self.counting_matrix
+        theta = self.theta
+        tau = np.quantile(counting_matrix, q=theta)
         clustering_matrix = self.clustering_matrix_estimate
 
         # get counting matrix N
@@ -174,6 +177,7 @@ class PACE:
                                                out=np.zeros_like(clustering_matrix), where=counting_matrix_tau != 0)
 
         self.clustering_matrix_estimate = clustering_matrix_estimate
+        self.tau = tau
         print(' PACE: Calculated the estimate for tau =', tau)
 
     """

@@ -53,6 +53,7 @@ class GALE:
                                 'base_alg': self.parent_alg,
                                 'n_subgraphs': self.T,
                                 'size_subgraphs': self.m,
+                                'PACE_theta': -1.0,
                                 'PACE_tau': -1.0,
                                 'apply_threshold': False,
                                 'clustering_mat_threshold': -1.0,
