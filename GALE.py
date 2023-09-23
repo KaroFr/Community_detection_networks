@@ -176,20 +176,41 @@ class GALE:
 
         # get the spanning tree
         Graph_subgraphs = nx.Graph(adj_subgraphs)
-        s_tree = nx.maximum_spanning_tree(Graph_subgraphs)
 
         # get the traversal (depth-first-search)
-        traversal = np.array(list(nx.dfs_edges(s_tree)))
+        traversal_vertices = np.array(list(nx.dfs_edges(Graph_subgraphs))).reshape(1, -1)
+        vertices_list = list(traversal_vertices[0])
 
-        # get the sequence to traverse
-        sequence = [traversal[0][0]]
-        sequence.extend(traversal[:, 1])
+        # seperate the different spanning trees
+        traversals = [[vertices_list[0]]]
+        first_occurance = True
+        predecessor = -1
 
-        # delete duplicates
-        ind = np.unique(sequence, return_index=True)[1]
-        sequence_unique = [sequence[i] for i in sorted(ind)]
+        for i, num in enumerate(vertices_list[1:]):
+            if first_occurance:
+                traversals[-1].append(num)
+                first_occurance = False
+                predecessor = num
+            elif not first_occurance and predecessor == num:
+                traversals[-1].append(num)
+                first_occurance = True
+            elif not first_occurance and predecessor != num:
+                traversals.append([])
+                traversals[-1].append(num)
+                first_occurance = True
+                predecessor = num
 
-        self.sequence = sequence_unique
+        # delete duplicates in the different spanning trees
+        traversals_unique = []
+        for traversal in traversals:
+            traversal = list(dict.fromkeys(traversal))
+            traversals_unique.append(traversal)
+        traversals_unique
+
+        # get longest traversal
+        longest_traversal = max(traversals_unique, key=len)
+
+        self.sequence = longest_traversal
 
     """
     Align the subgraphs
@@ -233,8 +254,6 @@ class GALE:
         while len(visited_indices) < n_subgraphs:
             # get current index of the subgraph from traversal
             current_index = sequence[counter]
-            # ToDo: If the traversal doesn't cover all subgraphs this throws an error: 'Indexerror:list index out of range'
-            #  -> maybe add all remaining subgraphs to the end of the sequence
 
             # get current subgraph: index set and clustering result
             indices_current_subgraph = indices[current_index]
@@ -247,8 +266,8 @@ class GALE:
             # calculate the overlap to all previously visited subgraphs
             overlap = np.intersect1d(indices_current_subgraph, indices_previous_subgraphs)
 
+            # weighted traversal:
             # if overlap is to small, go to next subgraph and visit this one later again
-            # this step is only necessary for the weighted traversal
             if weightedTraversal and len(overlap) < traversal_threshold:
                 sequence.append(current_index)
                 counter += 1
