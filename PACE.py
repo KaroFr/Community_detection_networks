@@ -16,7 +16,6 @@ class PACE:
     subgraphs = pd.DataFrame([])
     counting_matrix = np.array([])
     clustering_matrix_estimate = np.array([])
-    clustering_matrix_estimate_threshold = np.array([])
     clustering_labels_estimate = np.array([])
     n_nodes = 0
     runtime = 0.0
@@ -80,7 +79,7 @@ class PACE:
 
         # construct a random subgraph (T times)
         for _ in np.arange(T):
-            # randomly choose m indices out of [n]
+            # randomly choose m indices out of [n] (0 included, n excluded)
             index_set = np.random.choice(n, size=m, replace=False)
             index_set = np.sort(index_set)
             # get a grid to extract the submatrix
@@ -110,7 +109,7 @@ class PACE:
 
         if parent_alg == 'SC':
             # perform spectral clustering on each subgraph
-            for index, subgraph in subgraphs_for_clustering.iterrows():
+            for _, subgraph in subgraphs_for_clustering.iterrows():
                 adj_sub = subgraph["subgraphs"]
                 SC_object = SpectralClustering(ID=self.ID, P_estimate=adj_sub, K=n_clusters)
                 SC_result = SC_object.performSC()
@@ -131,10 +130,10 @@ class PACE:
         n_nodes = self.n_nodes
 
         # initiate a clustering/counting matrix containing zeros
-        clustering_matrix = np.zeros([n_nodes, n_nodes])
+        clustering_matrix = np.zeros([n_nodes, n_nodes], dtype=int)
         counting_matrix = np.zeros([n_nodes, n_nodes], dtype=int)
 
-        for index, subgraph in subgraphs_to_add_matrices.iterrows():
+        for _, subgraph in subgraphs_to_add_matrices.iterrows():
             # get the according index set and the grid
             index_set = subgraph["indices"]
             ixgrid = np.ix_(index_set, index_set)
@@ -148,10 +147,8 @@ class PACE:
             m = len(index_set)
             counting_matrix_subgraph = np.ones([m, m], dtype=int)
 
-            # write the clustering matrix of the subgraph into the zero matrix
+            # add up the clustering/ counting matrices
             clustering_matrix[ixgrid] += clustering_matrix_subgraph
-
-            # write the clustering matrix of the subgraph into the zero matrix
             counting_matrix[ixgrid] += counting_matrix_subgraph
 
         self.clustering_matrix_estimate = clustering_matrix
@@ -164,21 +161,45 @@ class PACE:
 
     def patchUp(self):
         counting_matrix = self.counting_matrix
+        clustering_matrix = self.clustering_matrix_estimate
+        n_nodes = len(clustering_matrix)
         theta = self.theta
         tau = np.quantile(counting_matrix, q=theta)
-        clustering_matrix = self.clustering_matrix_estimate
 
-        # get counting matrix N
+        # filter counting matrix for entries >= tau to get N
         counting_matrix_tau = np.array(
-            [[x if x > 1 else 0 for x in counting_matrix[i]] for i in range(len(counting_matrix))])
+            [[x if x >= tau else 0 for x in counting_matrix[i]] for i in range(len(counting_matrix))])
 
         # average -> get estimate \hat{C}
         clustering_matrix_estimate = np.divide(clustering_matrix, counting_matrix_tau,
-                                               out=np.zeros_like(clustering_matrix), where=counting_matrix_tau != 0)
+                                               out=np.zeros([n_nodes, n_nodes]), where=counting_matrix_tau != 0)
 
         self.clustering_matrix_estimate = clustering_matrix_estimate
         self.tau = tau
         print(' PACE: Calculated the estimate for tau =', tau)
+
+    """
+    Apply a threshold to the result to get a binary clustering matrix
+    """
+
+    def applyThresholdToEstimate(self):
+        threshold = self.threshold
+        clust_mat = self.clustering_matrix_estimate
+        clust_mat_thres = np.array([[1 if x > threshold else 0 for x in clust_mat[i]] for i in range(len(clust_mat))])
+        self.clustering_matrix_estimate = clust_mat_thres
+        print(' PACE: Applied threshold =', threshold, ' to get binary clustering matrix')
+
+    """
+    Apply a final clustering algorithm to get the labels
+    """
+
+    def applyFinalClustering(self):
+        estimate = self.clustering_matrix_estimate
+        n_clusters = self.K
+        SC_object = SpectralClustering(P_estimate=estimate, K=n_clusters)
+        clustering_labels_estimate = SC_object.performSC()
+        self.clustering_labels_estimate = clustering_labels_estimate
+        print(' PACE: Applied final Spectral Clustering step')
 
     """
     Perform the whole algorithm
@@ -194,33 +215,7 @@ class PACE:
         self.patchUp()
         if apply_threshold:
             self.applyThresholdToEstimate()
-            estimate = self.clustering_matrix_estimate_threshold
-        else:
-            estimate = self.clustering_matrix_estimate
-        self.applyFinalClustering(estimate)
+        self.applyFinalClustering()
         time_end_PACE = time.time()
         self.runtime = np.round(time_end_PACE - time_start_PACE, 4)
         return self.clustering_labels_estimate
-
-
-    """
-    Apply a threshold to the result to get a binary clustering matrix
-    """
-
-    def applyThresholdToEstimate(self):
-        threshold = self.threshold
-        clust_mat = self.clustering_matrix_estimate
-        clust_mat_thres = np.array([[1 if x > threshold else 0 for x in clust_mat[i]] for i in range(len(clust_mat))])
-        self.clustering_matrix_estimate_threshold = clust_mat_thres
-        print(' PACE: Applied threshold =', threshold, ' to get binary clustering matrix')
-
-    """
-    Apply a final clustering algorithm to get the labels
-    """
-
-    def applyFinalClustering(self, estimate):
-        n_clusters = self.K
-        SC_object = SpectralClustering(P_estimate=estimate, K=n_clusters)
-        clustering_labels_estimate = SC_object.performSC()
-        self.clustering_labels_estimate = clustering_labels_estimate
-        print(' PACE: Applied final Spectral Clustering step')
