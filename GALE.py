@@ -81,7 +81,7 @@ class GALE:
 
         # construct a random subgraph (T times)
         for _ in np.arange(T):
-            # randomly choose m indices out of [n]
+            # randomly choose m indices out of [n] (0 included, n excluded)
             index_set = np.random.choice(n, size=m, replace=False)
             index_set = np.sort(index_set)
             # get a grid to extract the submatrix
@@ -111,7 +111,7 @@ class GALE:
 
         if parent_alg == 'SC':
             # perform spectral clustering on each subgraph
-            for index, subgraph in subgraphs_for_clustering.iterrows():
+            for _, subgraph in subgraphs_for_clustering.iterrows():
                 adj_sub = subgraph["subgraphs"]
                 SC_object = SpectralClustering(ID=self.ID, P_estimate=adj_sub, K=n_clusters)
                 SC_result = SC_object.performSC()
@@ -260,11 +260,9 @@ class GALE:
             indices_current_subgraph = indices[current_index]
             current_subgraph_clustered = subgraphs_clustered[current_index]
 
-            # get the union of indices of subgraphs before that index
+            # calculate the overlap to all previously visited subgraphs
             visited_index_sets = [indices[i] for i in visited_indices]
             indices_previous_subgraphs = reduce(np.union1d, visited_index_sets)
-
-            # calculate the overlap to all previously visited subgraphs
             overlap = np.intersect1d(indices_current_subgraph, indices_previous_subgraphs)
 
             # weighted traversal:
@@ -279,10 +277,8 @@ class GALE:
                     visited_indices.append(current_index)
                 continue
 
-            # get membership matrices
+            # get membership matrices and extend to n x K matrix by adding zeros
             current_membership_mat = getMembershipMatrix(current_subgraph_clustered)
-
-            # extend to n x K matrix by adding zeros
             current_membership_mat_extended = np.zeros((n_nodes, K))
             current_membership_mat_extended[indices_current_subgraph] = current_membership_mat
 
