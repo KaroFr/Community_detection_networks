@@ -4,6 +4,7 @@ import pandas as pd
 from numpy.linalg import eigh
 # KMeans
 from sklearn.cluster import KMeans
+from Helpers import getLaplacian
 
 import time
 
@@ -17,11 +18,15 @@ class SpectralClustering:
     labels_pred = []
     runtime = 0.0
 
-    def __init__(self, P_estimate, K, ID=-1):
+    def __init__(self, adjacency, n_clusters, P_estimate='adjacency', ID=-1):
         self.ID = ID
+        self.adj = adjacency
         self.P_estimate = P_estimate
-        self.K = K
-        self.n_nodes = len(P_estimate)
+        if P_estimate not in ['adjacency', 'Laplacian']:
+            print('The input for P_estimate needs to be either "adjacency" or "Laplacian".')
+            return
+        self.K = n_clusters
+        self.n_nodes = len(adjacency)
 
     """
     get import values as dictionary
@@ -29,9 +34,8 @@ class SpectralClustering:
 
     def get_values(self):
         var_df = pd.DataFrame([{'ID': self.ID,
-                                'n_nodes': self.n_nodes,
-                                'n_clusters': self.K,
                                 'algorithm': self.algorithm,
+                                'estimate': self.P_estimate,
                                 'subgraph_sel_alg': 'None',
                                 'base_alg': 'None',
                                 'n_subgraphs': 1,
@@ -50,15 +54,22 @@ class SpectralClustering:
 
     """
     Performs Spectral Clustering
-    Input:  P_estimate: estimate for the prob. matrix P
+    Input:  adj: estimate for the prob. matrix P
             k: number of clusters
     Output: y_pred_sc: array of the predicted communities
     """
 
     def performSC(self):
         time_start_SC = time.time()
-        P_est = self.P_estimate
+        adj = self.adj
         n_clusters = self.K
+
+        P_estimate = self.P_estimate
+        if P_estimate == 'adjacency':
+            P_est = adj
+        elif P_estimate == 'Laplacian':
+            P_est = getLaplacian(adj)
+
         evalues, evectors = eigh(P_est)
 
         # sort by Eigenvalues
