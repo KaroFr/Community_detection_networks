@@ -44,8 +44,6 @@ class PACE:
 
     def get_values(self):
         var_df = pd.DataFrame([{'ID': self.ID,
-                                'n_nodes': self.n_nodes,
-                                'n_clusters': self.K,
                                 'algorithm': self.algorithm,
                                 'subgraph_sel_alg': self.subgraph_selection_alg,
                                 'base_alg': self.parent_alg,

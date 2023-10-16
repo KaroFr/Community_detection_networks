@@ -39,6 +39,8 @@ class SBM:
     def get_values(self):
         var_df = pd.DataFrame([{'n_clusters': self.K,
                                 'n_nodes': self.n_nodes,
+                                'rho': self.rho,
+                                'alpha': self.alpha,
                                 'dynamic': self.dynamic,
                                 'n_time_steps': self.T,
                                 'epsilon': self.eps,
