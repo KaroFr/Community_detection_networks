@@ -63,3 +63,18 @@ def isMembership(membership_matrix):
         if sum_row != 1:
             return False
     return True
+
+
+"""
+Input: any symmetric matrix
+Output: graph Laplacian matrix
+"""
+
+
+def getLaplacian(matrix):
+    # degree matrix
+    D = matrix.sum(axis=1)
+    D = np.sqrt(1 / D)
+    # matrix multiplication is very expensive => do elementwise multiplication
+    L = np.multiply(D[np.newaxis, :], np.multiply(matrix, D[:, np.newaxis]))
+    return L
