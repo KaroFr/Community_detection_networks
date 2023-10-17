@@ -157,7 +157,7 @@ class GALE:
     sequence = the traversal by Mukherjee et al
     """
 
-    def getNormalTraversal(self):
+    def getMaximalNormalTraversal(self):
         m_thres = self.traversal_threshold
         T = self.T
         indices = self.subgraphs['indices']
@@ -212,14 +212,69 @@ class GALE:
         self.sequence = longest_traversal
 
     """
+        Get a traversal through all the subgraphs
+        sequence = the traversal by Mukherjee et al
+        """
+
+    def getAllNormalTraversals(self):
+        m_thres = self.traversal_threshold
+        T = self.T
+        indices = self.subgraphs['indices']
+
+        # construct graph of the subgraphs based on overlap
+        # only filled on upper triangle -> that suffices to calculate the spanning tree
+        adj_subgraphs = np.zeros((T, T))
+        for t1 in np.arange(T):
+            for t2 in np.arange(t1 + 1, T):
+                # if overlap is big enough there is a connection
+                overlap = np.intersect1d(indices[t1], indices[t2])
+                n_overlap = len(overlap)
+                if n_overlap > m_thres:
+                    adj_subgraphs[t1][t2] = 1
+
+        # get the spanning tree
+        Graph_subgraphs = nx.Graph(adj_subgraphs)
+
+        # get the traversal (depth-first-search)
+        traversal_vertices = np.array(list(nx.dfs_edges(Graph_subgraphs))).reshape(1, -1)
+        vertices_list = list(traversal_vertices[0])
+
+        # seperate the different spanning trees
+        traversals = [[vertices_list[0]]]
+        first_occurance = True
+        predecessor = -1
+
+        for i, num in enumerate(vertices_list[1:]):
+            if first_occurance:
+                traversals[-1].append(num)
+                first_occurance = False
+                predecessor = num
+            elif not first_occurance and predecessor == num:
+                traversals[-1].append(num)
+                first_occurance = True
+            elif not first_occurance and predecessor != num:
+                traversals.append([])
+                traversals[-1].append(num)
+                first_occurance = True
+                predecessor = num
+
+        # delete duplicates in the different spanning trees
+        traversals_unique = []
+        for traversal in traversals:
+            traversal = list(dict.fromkeys(traversal))
+            traversals_unique.append(traversal)
+        traversals_unique
+
+        self.sequence = traversals_unique
+
+    """
     Align the subgraphs
     """
 
-    def alignLabels(self):
+    def alignLabels(self, sequence):
         n_nodes = self.n_nodes
         K = self.K
         subgraphs_clustered = self.subgraphs['clustering_result']
-        sequence = self.sequence
         indices = self.subgraphs['indices']
         T = self.T
         tau = self.tau
@@ -345,8 +400,9 @@ class GALE:
         if self.weightedTraversal:
             self.getWeightedTraversal()
         else:
-            self.getNormalTraversal()
-        self.alignLabels()
+            self.getMaximalNormalTraversal()
+        sequence = self.sequence
+        self.alignLabels(sequence)
         self.getBinaryMembershipmatrix()
         time_end_GALE = time.time()
         self.runtime = np.round(time_end_GALE - time_start_GALE, 4)
