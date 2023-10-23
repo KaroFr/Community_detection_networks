@@ -119,7 +119,7 @@ class SBM:
             prob_matrix = memb_matrix @ B @ memb_matrix.transpose()
             probability_matrices.append(prob_matrix)
 
-        SBMs["probability_matrix"] = probability_matrices
+        SBMs["prob_matrix"] = probability_matrices
         self.SBMs = SBMs
 
     def get_adjacency_matrices(self):
@@ -128,12 +128,16 @@ class SBM:
         SBMs = self.SBMs
         adj_matrices = []
         for _, graph in SBMs.iterrows():
-            prob_matrix = graph['probability_matrix']
+            prob_matrix = graph['prob_matrix']
             if len(prob_matrix) != n:
                 print('The probability matrix has the wrong size: ', len(prob_matrix), ' while n: ', n)
                 break
-            adj_matrix = np.random.binomial(1, prob_matrix, size=(n, n))
-            np.fill_diagonal(adj_matrix, 0)
+            # construct adjacency matrix
+            adj_matrix_full = np.random.binomial(1, prob_matrix, size=(n, n))
+
+            # make it symmetric
+            adj_matrix_lower_triangle = np.tril(adj_matrix_full, k=-1)
+            adj_matrix = adj_matrix_lower_triangle + adj_matrix_lower_triangle.T
             adj_matrices.append(adj_matrix)
 
         SBMs["adj_matrix"] = adj_matrices
