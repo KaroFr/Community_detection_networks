@@ -10,9 +10,6 @@ Class to perform PACE
 
 
 class PACE:
-    algorithm = 'PACE'
-    subgraph_selection_alg = 'Random'
-    parent_alg = 'SC'
     subgraphs_df = pd.DataFrame([])
     counting_matrices = np.array([])
     clustering_matrices = np.array([])
@@ -20,19 +17,15 @@ class PACE:
     n_nodes = 0
     runtime = 0.0
 
-    def __init__(self, SBMs, n_subgraphs, size_subgraphs, n_clusters, theta=0.4, ID=-1, subgraph_sel_alg='Random',
-                 parent_alg='SC'):
-        self.ID = ID
-        self.adjacencies = SBMs['adj_matrix']
-        self.N = n_subgraphs
-        self.m = size_subgraphs
-        self.T = len(SBMs['adj_matrix'])
+    def __init__(self, subgraphs_df, n_nodes, n_clusters, theta=0.4):
+        self.subgraphs_df = subgraphs_df
+        self.N = len(subgraphs_df['indices'])
+        self.m = len(subgraphs_df['indices'][0])
+        self.T = (subgraphs_df.shape[1] - 1)/2
         print('T = ', self.T)
         self.K = n_clusters
         self.theta = theta
-        self.subgraph_selection_alg = subgraph_sel_alg
-        self.parent_alg = parent_alg
-        self.n_nodes = len(SBMs['adj_matrix'][0])
+        self.n_nodes = n_nodes
         print('n_nodes = ', self.n_nodes)
 
     """
@@ -40,12 +33,7 @@ class PACE:
     """
 
     def get_values(self):
-        var_df = pd.DataFrame([{'ID': self.ID,
-                                'algorithm': self.algorithm,
-                                'subgraph_sel_alg': self.subgraph_selection_alg,
-                                'base_alg': self.parent_alg,
-                                'n_subgraphs': self.N,
-                                'size_subgraphs': self.m,
+        var_df = pd.DataFrame([{'algorithm': 'PACE',
                                 'PACE_theta': self.theta,
                                 'GALE_tau': -1.0,
                                 'GALE_weighted_traversal': False,
@@ -54,64 +42,6 @@ class PACE:
                                 'runtime': self.runtime,
                                 }])
         return var_df
-
-    """
-    Random selection of subgraphs 
-    The subgraphs will be stored in the DataFrame 'subgraphs'
-    """
-
-    def selectSubgraphs(self):
-        n = self.n_nodes
-        m = self.m
-        N = self.N
-        indices = []
-        for _ in np.arange(N):
-            # randomly choose m indices out of [n] (0 included, n excluded)
-            index_set = np.random.choice(n, size=m, replace=False)
-            index_set = np.sort(index_set)
-            indices.append(index_set)
-        self.subgraphs_df['indices'] = indices
-        print(' PACE: Selected N =', N, ' subgraphs of size m =', m)
-
-    def getAdjacencyMatrices(self):
-        subgraphs_df = self.subgraphs_df
-        T = self.T
-        full_adjacencies = self.adjacencies
-
-        for t in np.arange(T):
-            adj_arr = []
-            # get full adjacency matrix of graph of time t
-            full_adj = full_adjacencies[t]
-            for index_set in subgraphs_df['indices']:
-                # get a grid to extract the submatrix
-                ixgrid = np.ix_(index_set, index_set)
-                adj = full_adj[ixgrid]
-                adj_arr.append(adj)
-            subgraphs_df['adj_' + str(t)] = adj_arr
-        self.subgraphs_df = subgraphs_df
-
-    """
-    Perform Clustering on each subgraph 
-    The Clustering results will be stored in the Dataframe 'subgraphs'
-    """
-
-    def clusterSubgraphs(self):
-        subgraphs_for_clustering = self.subgraphs_df
-        n_clusters = self.K
-        parent_alg = self.parent_alg
-        T = self.T
-
-        if parent_alg == 'SC':
-            for t in np.arange(T):
-                clustering_results_array = []
-                for adj in subgraphs_for_clustering['adj_' + str(t)]:
-                    SC_object = SpectralClustering(ID=self.ID, adjacency=adj, n_clusters=n_clusters)
-                    SC_result = SC_object.performSC()
-                    clustering_results_array.append(SC_result)
-                subgraphs_for_clustering['clus_labels_' + str(t)] = clustering_results_array
-
-        self.subgraphs_df = subgraphs_for_clustering
-        print(' PACE: Performed clustering algorithm', parent_alg, 'on all subgraphs for K =', n_clusters, 'clusters')
 
     """
     1)  Get the clustering matrices of the subgraphs
@@ -137,7 +67,7 @@ class PACE:
                 ixgrid = np.ix_(index_set, index_set)
 
                 # get clustering matrix of the subgraph
-                clustering_labels = subgraph["clus_labels_" + str(t)]
+                clustering_labels = subgraph["clus_labels_" + str(int(t))]
                 membership_mat = getMembershipMatrix(clustering_labels)
                 clustering_matrix_subgraph = membership_mat @ membership_mat.transpose()
 
@@ -166,7 +96,7 @@ class PACE:
         T = self.T
         n_nodes = self.n_nodes
         theta = self.theta
-        for t in np.arange(T):
+        for t in np.arange(T, dtype=int):
             counting_matrix = counting_matrices[t]
             clustering_matrix = clustering_matrices[t]
 
@@ -193,7 +123,7 @@ class PACE:
         clustering_matrices = self.clustering_matrices
         clustering_labels = []
 
-        for t in np.arange(T):
+        for t in np.arange(T, dtype=int):
             estimate = clustering_matrices[t]
             SC_object = SpectralClustering(adjacency=estimate, n_clusters=n_clusters)
             clustering_labels_estimate = SC_object.performSC()
@@ -209,9 +139,6 @@ class PACE:
     def performPACE(self):
         print('Perform PACE:')
         time_start_PACE = time.time()
-        self.selectSubgraphs()
-        self.getAdjacencyMatrices()
-        self.clusterSubgraphs()
         self.getMatrices()
         self.patchUp()
         self.applyFinalClustering()
