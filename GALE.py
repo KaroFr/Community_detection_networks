@@ -119,6 +119,46 @@ class GALE:
         self.subgraphs_df = subgraphs_for_clustering
         print(' GALE: Performed clustering algorithm', parent_alg, 'on all subgraphs for K =', n_clusters, 'clusters')
 
+    def getTraversal_final(self):
+        N = self.N
+        indices = self.subgraphs_df['indices']
+
+        # construct graph of the subgraphs based on overlap
+        # only filled on upper triangle -> that suffices to calculate the spanning tree
+        adj_subgraphs_weighted = np.zeros((N, N))
+        for t1 in np.arange(N):
+            for t2 in np.arange(t1 + 1, N):
+                overlap = np.intersect1d(indices[t1], indices[t2])
+                n_overlap = len(overlap)
+                adj_subgraphs_weighted[t1][t2] = n_overlap
+
+        # get initial edge with maximal weight
+        traversal = list(np.unravel_index(adj_subgraphs_weighted.argmax(), adj_subgraphs_weighted.shape))
+
+        # join the nodes in already visited subgraphs
+        joined_indices = np.unique((indices[traversal[0]], indices[traversal[1]]))
+
+        for _ in np.arange(N - 2):
+            # list the subgraphs not yet part of the traversal
+            remaining_subgraphs = np.setdiff1d(np.arange(N), traversal)
+
+            # for each remaining subgraph calculate the overlap
+            overlaps = []
+            for i in remaining_subgraphs:
+                overlap = np.intersect1d(joined_indices, indices[i])
+                overlaps.append(len(overlap))
+            max_overlap = max(overlaps)
+
+            # get the subgraph with the maximal overlap
+            max_overlap_index = np.array(overlaps).argmax(axis=0)
+            next_subgraph = remaining_subgraphs[max_overlap_index]
+
+            # add according subgraph to traversal and join index sets
+            traversal.append(next_subgraph)
+            joined_indices = np.concatenate((joined_indices, indices[next_subgraph]))
+            joined_indices = np.unique(joined_indices)
+
+        self.sequence = traversal
     """
     Get a traversal through all the subgraphs
     sequence = traversal with overlap as weight and no threshold
@@ -393,11 +433,15 @@ class GALE:
     """
 
     def getBinaryMembershipmatrix(self):
-        membership_estimate = self.membership_estimate
-        binary_membership_estimate = np.zeros_like(membership_estimate)
-        binary_membership_estimate[np.arange(len(membership_estimate)), membership_estimate.argmax(1)] = 1
-        self.membership_estimate = binary_membership_estimate
-        print(' GALE: Reduced result to binary membership matrix')
+        membership_estimates = self.membership_estimates
+        T = self.T
+        for t in np.arange(T):
+            membership_estimate = membership_estimates[t]
+            binary_membership_estimate = np.zeros_like(membership_estimate)
+            binary_membership_estimate[np.arange(len(membership_estimate)), membership_estimate.argmax(1)] = 1
+            membership_estimates[t] = binary_membership_estimate
+        self.membership_estimates = membership_estimates
+        print(' GALE: Reduced result to binary membership matrices')
 
     """
     Perform the whole algorithm
@@ -409,12 +453,9 @@ class GALE:
         time_start_GALE = time.time()
         self.selectSubgraphs()
         self.clusterSubgraphs()
-        if self.weightedTraversal:
-            self.getWeightedTraversal()
-        else:
-            self.getMaximalNormalTraversal()
+        self.getTraversal_final()
         self.alignLabels()
         self.getBinaryMembershipmatrix()
         time_end_GALE = time.time()
         self.runtime = np.round(time_end_GALE - time_start_GALE, 4)
-        return self.membership_estimate
+        return self.membership_estimates
