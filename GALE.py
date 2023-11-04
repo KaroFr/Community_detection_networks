@@ -25,8 +25,7 @@ class GALE:
         self.N = len(subgraphs_df['indices'])
         size_subgraphs = len(subgraphs_df['indices'][0])
         self.m = size_subgraphs
-        self.T = (subgraphs_df.shape[1] - 1)/2
-        print('T = ', self.T)
+        self.T = int((subgraphs_df.shape[1] - 1)/2)
         self.K = n_clusters
         self.tau = tau
         self.n_nodes = n_nodes

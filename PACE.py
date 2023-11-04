@@ -21,12 +21,10 @@ class PACE:
         self.subgraphs_df = subgraphs_df
         self.N = len(subgraphs_df['indices'])
         self.m = len(subgraphs_df['indices'][0])
-        self.T = (subgraphs_df.shape[1] - 1)/2
-        print('T = ', self.T)
+        self.T = int((subgraphs_df.shape[1] - 1)/2)
         self.K = n_clusters
         self.theta = theta
         self.n_nodes = n_nodes
-        print('n_nodes = ', self.n_nodes)
 
     """
     get import values as dictionary

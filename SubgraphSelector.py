@@ -27,7 +27,6 @@ class SubgraphSelector:
         self.N = n_subgraphs
         self.m = size_subgraphs
         self.T = len(SBMs['adj_matrix'])
-        print('T = ', self.T)
         self.K = n_clusters
         self.subgraph_selection_alg = subgraph_sel_alg
         self.parent_alg = parent_alg
@@ -65,7 +64,7 @@ class SubgraphSelector:
             index_set = np.sort(index_set)
             indices.append(index_set)
         self.subgraphs_df['indices'] = indices
-        print(' GALE: Selected N =', N, ' subgraphs of size m =', m)
+        print(' Selected N =', N, ' subgraphs of size m =', m)
 
     def getAdjacencyMatrices(self):
         subgraphs_df = self.subgraphs_df
@@ -105,7 +104,7 @@ class SubgraphSelector:
                 subgraphs_for_clustering['clus_labels_' + str(t)] = clustering_results_array
 
         self.subgraphs_df = subgraphs_for_clustering
-        print(' GALE: Performed clustering algorithm', parent_alg, 'on all subgraphs for K =', n_clusters, 'clusters')
+        print(' Performed clustering algorithm', parent_alg, 'on all subgraphs for K =', n_clusters, 'clusters')
 
     def getSubgraphs(self):
         time_start = time.time()
