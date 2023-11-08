@@ -9,7 +9,7 @@ from Helpers import getLaplacian
 import time
 
 """
-Class to perform PACE
+Class to perform Spectral Clustering
 """
 
 
