@@ -19,6 +19,7 @@ class SubgraphSelector:
     n_nodes = 0
     runtime = 0.0
     n_unused_subgraphs = 0
+    n_unused_nodes = 0
 
     def __init__(self, SBMs, n_subgraphs, size_subgraphs, n_clusters, ID=-1, subgraph_sel_alg='Random',
                  parent_alg='SC'):
@@ -44,6 +45,7 @@ class SubgraphSelector:
                                 'base_alg': self.parent_alg,
                                 'n_subgraphs': self.N,
                                 'size_subgraphs': self.m,
+                                'n_unused_nodes': self.n_unused_nodes,
                                 'subgraph_runtime': self.runtime,
                                 }])
         return var_df
@@ -63,6 +65,12 @@ class SubgraphSelector:
             index_set = np.random.choice(n, size=m, replace=False)
             index_set = np.sort(index_set)
             indices.append(index_set)
+
+        # count oob-samples
+        union = np.unique(indices)
+        oob_samples = np.setdiff1d(np.arange(n), union)
+        self.n_unused_nodes = len(oob_samples)
+
         self.subgraphs_df['indices'] = indices
         print(' Selected N =', N, ' subgraphs of size m =', m)
 
