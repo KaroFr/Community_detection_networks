@@ -13,7 +13,6 @@ Class for GALE
 
 class SubgraphSelector:
     subgraph_selection_alg = 'Random'
-    subgraphs_df = pd.DataFrame([])
     n_nodes = 0
     runtime = 0.0
     n_unused_subgraphs = 0
@@ -32,6 +31,7 @@ class SubgraphSelector:
         n_nodes = len(SBMs['adj_matrix'][0])
         print('n_nodes = ', n_nodes)
         self.n_nodes = n_nodes
+        self.subgraphs_df = pd.DataFrame(index=range(n_subgraphs))
 
     """
     get import values as dictionary
@@ -68,6 +68,8 @@ class SubgraphSelector:
         union = np.unique(indices)
         oob_samples = np.setdiff1d(np.arange(n), union)
         self.n_unused_nodes = len(oob_samples)
+        print(indices)
+        print(' Selected N =', N, ' subgraphs of size m =', m)
 
         self.subgraphs_df['indices'] = indices
         print(' Selected N =', N, ' subgraphs of size m =', m)
