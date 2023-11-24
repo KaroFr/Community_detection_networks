@@ -68,8 +68,6 @@ class SubgraphSelector:
         union = np.unique(indices)
         oob_samples = np.setdiff1d(np.arange(n), union)
         self.n_unused_nodes = len(oob_samples)
-        print(indices)
-        print(' Selected N =', N, ' subgraphs of size m =', m)
 
         self.subgraphs_df['indices'] = indices
         print(' Selected N =', N, ' subgraphs of size m =', m)
