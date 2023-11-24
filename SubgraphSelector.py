@@ -1,11 +1,10 @@
 import numpy as np
 import pandas as pd
+
+from HierarchicalClustering import HierarchicalClustering
 from SpectralClustering import SpectralClustering
-from Helpers import getMembershipMatrix
-from Match import match
-from functools import reduce
+
 import time
-import networkx as nx
 
 """
 Class for GALE
@@ -14,7 +13,6 @@ Class for GALE
 
 class SubgraphSelector:
     subgraph_selection_alg = 'Random'
-    parent_alg = 'SC'
     subgraphs_df = pd.DataFrame([])
     n_nodes = 0
     runtime = 0.0
@@ -109,6 +107,15 @@ class SubgraphSelector:
                     SC_object = SpectralClustering(ID=self.ID, adjacency=adj, n_clusters=n_clusters)
                     SC_result = SC_object.performSC()
                     clustering_results_array.append(SC_result)
+                subgraphs_for_clustering['clus_labels_' + str(t)] = clustering_results_array
+
+        if parent_alg == 'HC':
+            for t in np.arange(T):
+                clustering_results_array = []
+                for adj in subgraphs_for_clustering['adj_' + str(t)]:
+                    HC_object = HierarchicalClustering(ID=self.ID, adjacency=adj, n_clusters=n_clusters)
+                    HC_result = HC_object.performHC()
+                    clustering_results_array.append(HC_result)
                 subgraphs_for_clustering['clus_labels_' + str(t)] = clustering_results_array
 
         self.subgraphs_df = subgraphs_for_clustering
