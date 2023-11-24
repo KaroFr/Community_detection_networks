@@ -16,12 +16,17 @@ class SBM:
     SBMs = pd.DataFrame([])
     lambda_min_B_0 = 0
 
-    def __init__(self, n_clusters, n_nodes, rho, alpha, n_time_steps=1, epsilon=0):
+    def __init__(self, n_clusters, n_nodes, rho, alpha, initial_distribution=[], n_time_steps=1, epsilon=0):
         self.K = n_clusters
         self.state_space = np.arange(n_clusters)
         self.n_nodes = n_nodes
         self.rho = rho
         self.alpha = alpha
+        if not initial_distribution:
+            self.initial_distribution = self.get_initial_distribution()
+        else:
+            self.initial_distribution = initial_distribution
+
         if n_time_steps > 1:
             self.dynamic = True
         else:
@@ -71,7 +76,7 @@ class SBM:
     def get_initial_states(self):
         n = self.n_nodes
         state_space = self.state_space
-        initial_distribution = self.get_initial_distribution()
+        initial_distribution = self.initial_distribution
         return np.random.choice(state_space, size=n, p=initial_distribution)
 
     def get_T_states(self):
