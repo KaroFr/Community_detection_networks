@@ -26,7 +26,7 @@ for alpha in alphas:
 
         # load the results csv (if already existing) to save the variables
         try:
-            results_df = pd.read_csv('results/results_csv_large_n.csv', sep=';', index_col=False)
+            results_df = pd.read_csv('results/results_ev_SC.csv', sep=';', index_col=False)
         except FileNotFoundError:
             ID = 1
 

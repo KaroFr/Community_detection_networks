@@ -18,7 +18,7 @@ try:
 except FileNotFoundError:
     ID = 1
 
-n_nodes = 5000
+n_nodes = 3000
 n_clusters = 5
 rho = 0.7
 alphas = np.arange(start=0.02, stop=1.02, step=0.02)
@@ -30,12 +30,15 @@ for alpha in alphas:
     adj_LeiRinaldo_metric = []
     Lap_LeiRinaldo_metric = []
 
-    for _ in tqdm(np.arange(100)):
+    for _ in tqdm(np.arange(50)):
         print('--------------------------')
         print('------ simulate SBM ------')
         print('--------------------------')
-        SBM_object = SBM(n_clusters=n_clusters, n_nodes=n_nodes, rho=rho, alpha=alpha, dynamic=False)
-        labels_true, prob_matrix_true, adj_matrix = SBM_object.simulate()
+        SBM_object = SBM(n_clusters=n_clusters, n_nodes=n_nodes, rho=rho, alpha=alpha, n_time_steps=1)
+        SBMs = SBM_object.simulate()
+        labels_true = SBMs['labels'][0]
+        prob_matrix_true = SBMs['probability_matrix'][0]
+        adj_matrix = SBMs['adj_matrix'][0]
         SBM_setting = SBM_object.get_values()
 
         membership_mat_true = getMembershipMatrix(labels_true)
