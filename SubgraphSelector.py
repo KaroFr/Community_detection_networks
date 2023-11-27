@@ -104,6 +104,7 @@ class SubgraphSelector:
         T = self.T
         forgetting_factor = self.forgetting_factor
 
+        # static spectral clustering
         if parent_alg == 'SC':
             for t in np.arange(T):
                 clustering_results_array = []
@@ -113,6 +114,7 @@ class SubgraphSelector:
                     clustering_results_array.append(SC_result)
                 subgraphs_for_clustering['clus_labels_' + str(t)] = clustering_results_array
 
+        # evolutionary spectral clustering
         if parent_alg == 'evSC':
             # save evolutionary estimates
             adj_estimates = []
@@ -138,6 +140,7 @@ class SubgraphSelector:
                         clustering_results_array.append(SC_result)
                 subgraphs_for_clustering['clus_labels_' + str(t)] = clustering_results_array
 
+        # static hierarchical clustering
         if parent_alg == 'HC':
             for t in np.arange(T):
                 clustering_results_array = []
@@ -145,6 +148,34 @@ class SubgraphSelector:
                     HC_object = HierarchicalClustering(ID=self.ID, adjacency=adj, n_clusters=n_clusters)
                     HC_result = HC_object.performHC()
                     clustering_results_array.append(HC_result)
+                subgraphs_for_clustering['clus_labels_' + str(t)] = clustering_results_array
+
+        # evolutionary hierarchical clustering
+        if parent_alg == 'evHC':
+            # save evolutionary estimates
+            adj_estimates = []
+
+            for t in np.arange(T):
+                clustering_results_array = []
+
+                # perform simple HC for the first time step
+                if t == 0:
+                    for index in np.arange(N):
+                        adj_estimates.append(subgraphs_for_clustering['adj_' + str(t)][index])
+                        HC_object = HierarchicalClustering(ID=self.ID, adjacency=adj_estimates[index],
+                                                           n_clusters=n_clusters)
+                        HC_result = HC_object.performHC()
+                        clustering_results_array.append(HC_result)
+
+                # perform evolutionary HC for all other time steps
+                else:
+                    for index in np.arange(N):
+                        adj = subgraphs_for_clustering['adj_' + str(t)][index]
+                        adj_estimates[index] = forgetting_factor * adj + (1 - forgetting_factor) * adj_estimates[index]
+                        HC_object = HierarchicalClustering(ID=self.ID, adjacency=adj_estimates[index],
+                                                           n_clusters=n_clusters)
+                        HC_result = HC_object.performHC()
+                        clustering_results_array.append(HC_result)
                 subgraphs_for_clustering['clus_labels_' + str(t)] = clustering_results_array
 
         self.subgraphs_df = subgraphs_for_clustering
