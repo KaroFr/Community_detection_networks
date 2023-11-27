@@ -19,7 +19,7 @@ class SubgraphSelector:
     n_unused_nodes = 0
 
     def __init__(self, SBMs, n_subgraphs, size_subgraphs, n_clusters, ID=-1, subgraph_sel_alg='Random',
-                 parent_alg='SC'):
+                 parent_alg='SC', forgetting_factor=1):
         self.ID = ID
         self.adjacencies = SBMs['adj_matrix']
         self.N = n_subgraphs
@@ -28,6 +28,7 @@ class SubgraphSelector:
         self.K = n_clusters
         self.subgraph_selection_alg = subgraph_sel_alg
         self.parent_alg = parent_alg
+        self.forgetting_factor = forgetting_factor
         n_nodes = len(SBMs['adj_matrix'][0])
         print('n_nodes = ', n_nodes)
         self.n_nodes = n_nodes
@@ -43,6 +44,7 @@ class SubgraphSelector:
                                 'base_alg': self.parent_alg,
                                 'n_subgraphs': self.N,
                                 'size_subgraphs': self.m,
+                                'forgetting_factor': self.forgetting_factor,
                                 'n_unused_nodes': self.n_unused_nodes,
                                 'subgraph_runtime': self.runtime,
                                 }])
@@ -96,9 +98,11 @@ class SubgraphSelector:
 
     def clusterSubgraphs(self):
         subgraphs_for_clustering = self.subgraphs_df
+        N = self.N
         n_clusters = self.K
         parent_alg = self.parent_alg
         T = self.T
+        forgetting_factor = self.forgetting_factor
 
         if parent_alg == 'SC':
             for t in np.arange(T):
@@ -107,6 +111,31 @@ class SubgraphSelector:
                     SC_object = SpectralClustering(ID=self.ID, adjacency=adj, n_clusters=n_clusters)
                     SC_result = SC_object.performSC()
                     clustering_results_array.append(SC_result)
+                subgraphs_for_clustering['clus_labels_' + str(t)] = clustering_results_array
+
+        if parent_alg == 'evSC':
+            # save evolutionary estimates
+            adj_estimates = []
+
+            for t in np.arange(T):
+                clustering_results_array = []
+
+                # perform simple SC for the first time step
+                if t == 0:
+                    for index in np.arange(N):
+                        adj_estimates.append(subgraphs_for_clustering['adj_' + str(t)][index])
+                        SC_object = SpectralClustering(ID=self.ID, adjacency=adj_estimates[index], n_clusters=n_clusters)
+                        SC_result = SC_object.performSC()
+                        clustering_results_array.append(SC_result)
+
+                # perform evolutionary SC for all other time steps
+                else:
+                    for index in np.arange(N):
+                        adj = subgraphs_for_clustering['adj_' + str(t)][index]
+                        adj_estimates[index] = forgetting_factor * adj + (1 - forgetting_factor) * adj_estimates[index]
+                        SC_object = SpectralClustering(ID=self.ID, adjacency=adj_estimates[index], n_clusters=n_clusters)
+                        SC_result = SC_object.performSC()
+                        clustering_results_array.append(SC_result)
                 subgraphs_for_clustering['clus_labels_' + str(t)] = clustering_results_array
 
         if parent_alg == 'HC':
