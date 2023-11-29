@@ -17,14 +17,15 @@ class PACE:
     n_nodes = 0
     runtime = 0.0
 
-    def __init__(self, subgraphs_df, n_nodes, n_clusters, theta=0.4):
+    def __init__(self, subgraphs_df, n_nodes, n_clusters, theta=0.4, forgetting_factor=1):
         self.subgraphs_df = subgraphs_df
         self.N = len(subgraphs_df['indices'])
         self.m = len(subgraphs_df['indices'][0])
-        self.T = int((subgraphs_df.shape[1] - 1)/2)
+        self.T = int((subgraphs_df.shape[1] - 1) / 2)
+        self.n_nodes = n_nodes
         self.K = n_clusters
         self.theta = theta
-        self.n_nodes = n_nodes
+        self.forgetting_factor = forgetting_factor
 
     """
     get import values as dictionary
@@ -37,6 +38,7 @@ class PACE:
                                 'GALE_weighted_traversal': False,
                                 'GALE_n_unused_subgraphs': -1,
                                 'traversal_threshold': -1.0,
+                                'forgetting_factor_PACE': self.forgetting_factor,
                                 'runtime': self.runtime,
                                 }])
         return var_df
@@ -83,11 +85,11 @@ class PACE:
         self.counting_matrices = counting_matrices
         self.clustering_matrices = clustering_matrices
 
-
     """
     combine the results from the different subgraphs
     Calculate the estimate \hat{C}
     """
+
     def patchUp(self):
         counting_matrices = self.counting_matrices
         clustering_matrices = self.clustering_matrices
@@ -111,19 +113,26 @@ class PACE:
 
         print(' PACE: Calculated the T=', T, ' Clustering matrices.')
 
-
     """
     Apply a final clustering algorithm to get the labels
     """
+
     def applyFinalClustering(self):
+        forgetting_factor = self.forgetting_factor
         T = self.T
         n_clusters = self.K
         clustering_matrices = self.clustering_matrices
         clustering_labels = []
 
         for t in np.arange(T, dtype=int):
-            estimate = clustering_matrices[t]
-            SC_object = SpectralClustering(adjacency=estimate, n_clusters=n_clusters)
+            if t == 0:
+                clustering_matrix_estimate = clustering_matrices[0]
+
+            else:
+                clustering_matrix_estimate = forgetting_factor * clustering_matrices[t] + (
+                            1 - forgetting_factor) * clustering_matrix_estimate
+
+            SC_object = SpectralClustering(adjacency=clustering_matrix_estimate, n_clusters=n_clusters)
             clustering_labels_estimate = SC_object.performSC()
             clustering_labels.append(clustering_labels_estimate)
 
