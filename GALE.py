@@ -20,14 +20,16 @@ class GALE:
     runtime = 0.0
     n_unused_subgraphs = 0
 
-    def __init__(self, subgraphs_df, n_nodes, n_clusters, tau, weightedTraversal=True):
+    def __init__(self, subgraphs_df, n_nodes, n_clusters, theta, weightedTraversal=True):
         self.subgraphs_df = subgraphs_df
-        self.N = len(subgraphs_df['indices'])
+        N = len(subgraphs_df['indices'])
+        self.N = N
         size_subgraphs = len(subgraphs_df['indices'][0])
-        self.m = size_subgraphs
+        m = size_subgraphs
+        self.m = m
         self.T = int((subgraphs_df.shape[1] - 1)/2)
         self.K = n_clusters
-        self.tau = tau
+        self.tau = theta*N*m/n_nodes
         self.n_nodes = n_nodes
         self.traversal_threshold = np.ceil(size_subgraphs ** 2 / (2 * n_nodes))
         self.weightedTraversal = weightedTraversal
@@ -246,24 +248,27 @@ class GALE:
     def alignLabels(self):
         subgraphs_to_align = self.subgraphs_df
         T = self.T
+        tau = self.tau
 
         membership_estimates = []
 
         for t in np.arange(T):
             subgraphs_clustered = subgraphs_to_align['clus_labels_' + str(int(t))]
-            membership_estimate, counter_unused_subgraphs = self.alignLabels_static(subgraphs_clustered)
+            if t == T-1:
+                membership_estimate, counter_unused_subgraphs = self.alignLabels_static(subgraphs_clustered, tau)
+            else:
+                membership_estimate, counter_unused_subgraphs = self.alignLabels_static(subgraphs_clustered, 0.0)
             print(' GALE: alignLabels t=', t, ', number of unused subgraphs:', counter_unused_subgraphs)
             membership_estimates.append(membership_estimate)
 
         self.membership_estimates = membership_estimates
 
-    def alignLabels_static(self, subgraphs_clustered):
+    def alignLabels_static(self, subgraphs_clustered, tau):
         sequence = self.sequence
         n_nodes = self.n_nodes
         K = self.K
         indices = self.subgraphs_df['indices']
         N = self.N
-        tau = self.tau
         traversal_threshold = self.traversal_threshold
         weightedTraversal = self.weightedTraversal
 
@@ -339,7 +344,6 @@ class GALE:
             # calculate xi
             sum_vector = np.sum(membership_added, axis=1)
             xi = np.array([1 if sum_vector[j] >= tau else 0 for j in range(len(sum_vector))])
-            # Todo: tau needs to be a vector not single variable
 
             # update membership matrix
             numerator = membership_added * xi.reshape(-1, 1)
