@@ -18,13 +18,13 @@ class SBM_Offline:
     n_min = 0
     n_max = 0
 
-    def __init__(self, n_clusters, n_nodes, rho, alpha, initial_distribution=[], n_time_steps=1, epsilon=0):
+    def __init__(self, n_clusters, n_nodes, rho, alpha, initial_distribution=None, n_time_steps=1, epsilon=0):
         self.K = n_clusters
         self.state_space = np.arange(n_clusters)
         self.n_nodes = n_nodes
         self.rho = rho
         self.alpha = alpha
-        if not initial_distribution:
+        if initial_distribution is None:
             self.initial_distribution = self.get_initial_distribution()
         else:
             self.initial_distribution = initial_distribution
