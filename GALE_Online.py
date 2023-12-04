@@ -37,7 +37,7 @@ class GALE_Online:
                                 'PACE_theta': -1.0,
                                 'GALE_tau': self.tau,
                                 'GALE_n_unused_subgraphs': self.n_unused_subgraphs,
-                                'runtime': self.runtime,
+                                'runtime_GALE': self.runtime,
                                 }])
         return var_df
 

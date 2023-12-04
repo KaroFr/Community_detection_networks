@@ -35,7 +35,7 @@ class SubgraphSelector_Online:
         time_start_selection = time.time()
         self.selectSubgraphs()
         time_end_selection = time.time()
-        self.runtime_selection = time_end_selection - time_start_selection
+        self.runtime_selection = np.round(time_end_selection - time_start_selection, 4)
 
     """
     get import values as dictionary
@@ -49,8 +49,8 @@ class SubgraphSelector_Online:
                                 'size_subgraphs': self.m,
                                 'forgetting_factor': self.forgetting_factor,
                                 'n_unused_nodes': self.n_unused_nodes,
-                                'runtime_subgraph_clustering': self.runtime_clustering,
                                 'runtime_subgraph_selection': self.runtime_selection,
+                                'runtime_subgraph_clustering': self.runtime_clustering,
                                 'time_step_selector': self.time_step,
                                 }])
         return var_df
