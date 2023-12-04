@@ -11,7 +11,7 @@ Class for GALE
 """
 
 
-class SubgraphSelector:
+class SubgraphSelector_Offline:
     subgraph_selection_alg = 'Random'
     n_nodes = 0
     runtime = 0.0
