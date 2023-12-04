@@ -26,7 +26,10 @@ class GALE_Online:
         self.tau = theta * N * m / n_nodes
         self.N = N
         self.m = m
+        time_start_traversal = time.time()
         self.getTraversal()
+        time_end_traversal = time.time()
+        self.runtime_traversal = np.round(time_end_traversal - time_start_traversal, 4)
 
 
     """
@@ -39,6 +42,7 @@ class GALE_Online:
                                 'GALE_tau': self.tau,
                                 'GALE_n_unused_subgraphs': self.n_unused_subgraphs,
                                 'runtime_GALE': self.runtime,
+                                'runtime_traversal_GALE': self.runtime_traversal,
                                 }])
         return var_df
 
