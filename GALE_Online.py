@@ -26,6 +26,7 @@ class GALE_Online:
         self.tau = theta * N * m / n_nodes
         self.N = N
         self.m = m
+        self.getTraversal()
 
 
     """
@@ -192,7 +193,6 @@ class GALE_Online:
     def performGALE(self, labels_subgraphs, applyTau=False):
         print('Perform GALE:')
         time_start_GALE = time.time()
-        self.getTraversal()
         self.alignLabels(labels_subgraphs, applyTau)
         self.getBinaryMembershipmatrix()
         time_end_GALE = time.time()
