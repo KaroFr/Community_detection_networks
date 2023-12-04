@@ -13,11 +13,13 @@ Class for GALE
 
 class SubgraphSelector_Online:
     subgraph_selection_alg = 'Random'
-    runtime = 0.0
+    runtime_clustering = 0.0
     n_unused_subgraphs = 0
     n_unused_nodes = 0
+    adj_matrices = []
     adj_estimates = []
     indices = []
+    labels_subgraphs = []
 
     def __init__(self, n_nodes, n_subgraphs, size_subgraphs, n_clusters, ID=-1, subgraph_sel_alg='Random',
                  parent_alg='SC', forgetting_factor=1):
@@ -30,7 +32,10 @@ class SubgraphSelector_Online:
         self.parent_alg = parent_alg
         self.forgetting_factor = forgetting_factor
         self.n_nodes = n_nodes
-        self.subgraphs_df = pd.DataFrame(index=range(n_subgraphs))
+        time_start_selection = time.time()
+        self.selectSubgraphs()
+        time_end_selection = time.time()
+        self.runtime_selection = time_end_selection - time_start_selection
 
     """
     get import values as dictionary
@@ -44,9 +49,14 @@ class SubgraphSelector_Online:
                                 'size_subgraphs': self.m,
                                 'forgetting_factor': self.forgetting_factor,
                                 'n_unused_nodes': self.n_unused_nodes,
-                                'subgraph_runtime': self.runtime,
+                                'runtime_subgraph_clustering': self.runtime_clustering,
+                                'runtime_subgraph_selection': self.runtime_selection,
+                                'time_step': self.time_step,
                                 }])
         return var_df
+
+    def getIndices(self):
+        return self.indices
 
     """
     Random selection of subgraphs 
@@ -69,21 +79,20 @@ class SubgraphSelector_Online:
         oob_samples = np.setdiff1d(np.arange(n), union)
         self.n_unused_nodes = len(oob_samples)
 
-        self.subgraphs_df['indices'] = indices
+        self.indices = indices
         print(' Selected N =', N, ' subgraphs of size m =', m)
 
     def getAdjacencyMatrices(self, adj_matrix):
-        subgraphs_df = self.subgraphs_df
+        indices = self.indices
         full_adj_matrix = adj_matrix
 
         adj_arr = []
-        for index_set in subgraphs_df['indices']:
+        for index_set in indices:
             # get a grid to extract the submatrix
             ixgrid = np.ix_(index_set, index_set)
             adj = full_adj_matrix[ixgrid]
             adj_arr.append(adj)
-        subgraphs_df['adj_matrices'] = adj_arr
-        self.subgraphs_df = subgraphs_df
+        self.adj_matrices = adj_arr
 
     """
     Perform Clustering on each subgraph
@@ -93,21 +102,22 @@ class SubgraphSelector_Online:
     def clusterSubgraphs(self):
         clustering_results_array = []
         time_step = self.time_step
-        subgraphs_for_clustering = self.subgraphs_df
+        adj_matrices = self.adj_matrices
         n_clusters = self.K
         parent_alg = self.parent_alg
         forgetting_factor = self.forgetting_factor
+        N = self.N
 
         # static spectral clustering
         if parent_alg == 'SC':
-            for adj in subgraphs_for_clustering['adj_matrices']:
+            for adj in adj_matrices:
                 SC_object = SpectralClustering(ID=self.ID, adjacency=adj, n_clusters=n_clusters)
                 SC_result = SC_object.performSC()
                 clustering_results_array.append(SC_result)
 
         # static hierarchical clustering
         if parent_alg == 'HC':
-            for adj in subgraphs_for_clustering['adj_matrices']:
+            for adj in adj_matrices:
                 HC_object = HierarchicalClustering(ID=self.ID, adjacency=adj, n_clusters=n_clusters)
                 HC_result = HC_object.performHC()
                 clustering_results_array.append(HC_result)
@@ -117,12 +127,14 @@ class SubgraphSelector_Online:
 
             # get according estimates
             if time_step == 0:
-                adj_estimates_next = subgraphs_for_clustering['adj_matrices']
+                adj_estimates_next = adj_matrices
 
             else:
                 adj_estimates = self.adj_estimates
-                adj_matrices = subgraphs_for_clustering['adj_matrices']
-                adj_estimates_next = forgetting_factor * adj_matrices + (1 - forgetting_factor) * adj_estimates
+                adj_estimates_next = []
+                for index in np.arange(N):
+                    adj_estimate = forgetting_factor * adj_matrices[index] + (1 - forgetting_factor) * adj_estimates[index]
+                    adj_estimates_next.append(adj_estimate)
             self.adj_estimates = adj_estimates_next
 
             if parent_alg == 'evSC':
@@ -137,27 +149,19 @@ class SubgraphSelector_Online:
                     HC_result = HC_object.performHC()
                     clustering_results_array.append(HC_result)
 
-        subgraphs_for_clustering['clus_labels'] = clustering_results_array
-        self.subgraphs_df = subgraphs_for_clustering
+        self.labels_subgraphs = clustering_results_array
         print(' Performed clustering algorithm', parent_alg, 'on all subgraphs for K =', n_clusters, 'clusters')
 
     def predict_subgraph_labels(self, adj_matrix):
-        time_start = time.time()
+        time_start_clustering = time.time()
         time_step = self.time_step
-        if time_step == 0:
-            self.selectSubgraphs()
-
         self.getAdjacencyMatrices(adj_matrix)
-
         self.clusterSubgraphs()
+        time_end_clustering = time.time()
+        self.runtime_clustering = np.round(time_end_clustering - time_start_clustering, 4)
 
         time_step += 1
         self.time_step = time_step
 
-        time_end = time.time()
-        self.runtime = np.round(time_end - time_start, 4)
-
-        subgraphs_df = self.subgraphs_df
-        del subgraphs_df['adj_matrices']
         print('Clustered the subgraphs for time step t=', time_step)
-        return subgraphs_df
+        return self.labels_subgraphs
