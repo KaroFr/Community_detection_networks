@@ -48,7 +48,7 @@ class SBM_Online:
                                 'lambda_min_B_0': self.lambda_min_B_0,
                                 'n_min': self.n_min,
                                 'n_max': self.n_max,
-                                'time_step': self.time_step,
+                                'time_step_SBM': self.time_step,
                                 }])
         return var_df
 

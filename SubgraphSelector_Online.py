@@ -51,7 +51,7 @@ class SubgraphSelector_Online:
                                 'n_unused_nodes': self.n_unused_nodes,
                                 'runtime_subgraph_clustering': self.runtime_clustering,
                                 'runtime_subgraph_selection': self.runtime_selection,
-                                'time_step': self.time_step,
+                                'time_step_selector': self.time_step,
                                 }])
         return var_df
 

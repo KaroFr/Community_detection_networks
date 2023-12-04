@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from SpectralClustering import SpectralClustering
 from Helpers import getMembershipMatrix
 from Match import match
 from functools import reduce
