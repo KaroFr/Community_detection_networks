@@ -21,7 +21,7 @@ class SubgraphSelector_Online:
     indices = []
     labels_subgraphs = []
 
-    def __init__(self, n_nodes, n_subgraphs, size_subgraphs, n_clusters, ID=-1, subgraph_sel_alg='Random',
+    def __init__(self, n_nodes, n_subgraphs, size_subgraphs, n_clusters, indices=None, ID=-1, subgraph_sel_alg='Random',
                  parent_alg='SC', forgetting_factor=1):
         self.time_step = 0
         self.ID = ID
@@ -33,7 +33,10 @@ class SubgraphSelector_Online:
         self.forgetting_factor = forgetting_factor
         self.n_nodes = n_nodes
         time_start_selection = time.time()
-        self.selectSubgraphs()
+        if indices is None:
+            self.selectSubgraphs()
+        else:
+            self.indices = indices
         time_end_selection = time.time()
         self.runtime_selection = np.round(time_end_selection - time_start_selection, 4)
 
@@ -133,7 +136,8 @@ class SubgraphSelector_Online:
                 adj_estimates = self.adj_estimates
                 adj_estimates_next = []
                 for index in np.arange(N):
-                    adj_estimate = forgetting_factor * adj_matrices[index] + (1 - forgetting_factor) * adj_estimates[index]
+                    adj_estimate = forgetting_factor * adj_matrices[index] + (1 - forgetting_factor) * adj_estimates[
+                        index]
                     adj_estimates_next.append(adj_estimate)
             self.adj_estimates = adj_estimates_next
 
