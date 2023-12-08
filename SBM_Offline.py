@@ -25,7 +25,7 @@ class SBM_Offline:
         self.rho = rho
         self.alpha = alpha
         if initial_distribution is None:
-            self.initial_distribution = self.get_initial_distribution()
+            self.initial_distribution = np.full(n_clusters, (1 / n_clusters))
         else:
             self.initial_distribution = initial_distribution
 
@@ -72,10 +72,6 @@ class SBM_Offline:
         transition_matrix = np.full((K, K), (eps / (K - 1)))
         np.fill_diagonal(transition_matrix, (1 - eps))
         return transition_matrix
-
-    def get_initial_distribution(self):
-        K = self.K
-        return np.full(K, (1 / K))
 
     def get_initial_states(self):
         n = self.n_nodes
