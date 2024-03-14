@@ -18,12 +18,13 @@ class SpectralClustering:
     labels_pred = []
     runtime = 0.0
 
-    def __init__(self, adjacency, n_clusters, P_estimate='adjacency', ID=-1):
+    def __init__(self, adjacency, n_clusters, P_estimate='adjacency', regularization_tau=0, ID=-1):
         self.ID = ID
         self.adj = adjacency
         self.P_estimate = P_estimate
-        if P_estimate not in ['adjacency', 'Laplacian']:
-            print('The input for P_estimate needs to be either "adjacency" or "Laplacian".')
+        self.regularization_tau = regularization_tau
+        if P_estimate not in ['adjacency', 'Laplacian', 'regularized']:
+            print('The input for P_estimate needs to be either "adjacency", "Laplacian" or "regularized".')
             return
         self.K = n_clusters
         self.n_nodes = len(adjacency)
@@ -66,6 +67,9 @@ class SpectralClustering:
             P_est = adj
         elif P_estimate == 'Laplacian':
             P_est = getLaplacian(adj)
+        elif P_estimate == 'regularized':
+            regularization_tau = self.regularization_tau
+            P_est = getLaplacian(adj, regularization_tau)
 
         evalues, evectors = eigh(P_est)
 

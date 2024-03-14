@@ -71,9 +71,9 @@ Output: graph Laplacian matrix
 """
 
 
-def getLaplacian(matrix):
+def getLaplacian(matrix, regularization_tau=0):
     # degree matrix
-    D = matrix.sum(axis=1)
+    D = matrix.sum(axis=1) + regularization_tau
     D = np.sqrt(1 / D)
     # matrix multiplication is very expensive => do elementwise multiplication
     L = np.multiply(D[np.newaxis, :], np.multiply(matrix, D[:, np.newaxis]))
