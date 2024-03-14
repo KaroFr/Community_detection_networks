@@ -1,114 +1,74 @@
 import os
-import pandas as pd
+
 import numpy as np
-from SBM import simulate_SBM_2
-from SpectralClustering import SpectralClustering
-from PACE import PACE
-from GALE import GALE
-from ErrorMeasures import SarkarMetric_fromLabels, SarkarMetric_fromMatrices, LeiRinaldoMetric_1_fromLabels, LeiRinaldoMetric_1_fromMatrices
-from Helpers import getMembershipMatrix, getClusteringMatrix
-import time
+import pandas as pd
+
+from ErrorMeasures import LeiRinaldoMetric_1_fromMatrices
+from GALE_Online import GALE_Online
+from Helpers import getMembershipMatrix
+from SBM_Online import SBM_Online
+from SubgraphSelector_Online import SubgraphSelector_Online
 
 # make a directory for the upcoming results, if not already existing
 if not os.path.isdir('results'):
     os.mkdir('results')
 
-# load the results csv (if already existing) to save the variables
-try:
-    results_df = pd.read_csv('results/results_csv.csv', sep=';', index_col=False)
-    ID = max(results_df['ID']) + 1
-except FileNotFoundError:
-    ID = 1
+arr_1 = np.arange(100, 2000, step=200)
+arr_2 = np.arange(2000, 5000, step=500)
+arr_3 = np.arange(5000, 38000, step=1000)
+n_nodes_array = np.concatenate([arr_1, arr_2, arr_3])
 
-print('--------------------------')
-print('------ simulate SBM ------')
-print('--------------------------')
-K = 3
-s = 8000
-r = 0.3
-p = 0.6
+n_clusters = 5
+initial_distribution = []
+rho = 0.6
+alpha = 0.1
+epsilon = 0.3
+forgetting_factor = 0.8
 
-adj_true, clustering_labels_true = simulate_SBM_2(K, s, r, p)
-membership_mat_true = getMembershipMatrix(clustering_labels_true)
-clustering_mat_true = getClusteringMatrix(membership_mat_true)
+T = 10
 
-#######################################################
-############## set parameters
-n_subgraphs = 10
-size_subgraphs = int(K*s/4)
+n_subgraphs = 100
+size_subgraphs_divisor = 10
 
-PACE_tau = 6.0
-PACE_threshold = 0.5
+for n_nodes in n_nodes_array:
 
-GALE_tau = 1
+    # load the results csv (if already existing) to save the variables
+    try:
+        results_df = pd.read_csv('results/results_csv_large_n.csv', sep=';', index_col=False)
+        ID = max(results_df['ID']) + 1
+    except FileNotFoundError:
+        ID = 1
 
-#######################################################
-############## PACE
-print('--------------------------')
-print('------ perform PACE ------')
-print('--------------------------')
+    size_subgraphs = int(np.floor(n_nodes / size_subgraphs_divisor))
 
-PACE_object = PACE(ID=ID, adjacency=adj_true, n_subgraphs=n_subgraphs, size_subgraphs=size_subgraphs, tau=PACE_tau, n_clusters=K, apply_threshold=False)
-PACE_estimate_labels = PACE_object.performPACE()
-PACE_estimate_clustering_matrix = PACE_object.clustering_matrix_estimate
+    ########################################################
+    ########## Initiate subgraphs, SBM and GALE
+    SBM_object = SBM_Online(n_clusters=n_clusters, n_nodes=n_nodes, rho=rho, alpha=alpha, epsilon=epsilon)
+    Selector_object = SubgraphSelector_Online(n_nodes=n_nodes, n_subgraphs=n_subgraphs, size_subgraphs=size_subgraphs, n_clusters=n_clusters,
+                                              parent_alg='evSC', forgetting_factor=forgetting_factor)
+    indices = Selector_object.getIndices()
+    GALE_object = GALE_Online(indices=indices, n_nodes=n_nodes, n_clusters=n_clusters, theta=0.3)
 
-PACE_results = PACE_object.get_values()
+    ########################################################
+    ########## cluster subgraphs and align for every time step
+    for t in np.arange(T):
+        # SBM
+        labels_true, adj = SBM_object.simulate_next()
 
-start_time_metric = time.time()
-PACE_results['SarkarMetric'] = SarkarMetric_fromMatrices(PACE_estimate_clustering_matrix, clustering_mat_true)
-second_time_metric = time.time()
-PACE_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromLabels(PACE_estimate_labels, clustering_labels_true)
-end_time_metric = time.time()
-print('Calculating the metrics took ', np.round(second_time_metric - start_time_metric, 4), ' and ', np.round(end_time_metric - second_time_metric, 4), ' seconds')
+        # cluster Subgraphs
+        labels_subgraphs = Selector_object.predict_subgraph_labels(adj)
 
-del PACE_object, PACE_estimate_labels, PACE_estimate_clustering_matrix
+        # align subgraphs of first SBM
+        membership_estimate = GALE_object.performGALE(labels_subgraphs)
 
-#######################################################
-############## GALE with weighted traversal
-ID += 1
-print('--------------------------')
-print('------ perform GALE ------')
-print('--------------------------')
+    SBM_setting = SBM_object.get_values()
+    subgraphs_results = SBM_setting.join(Selector_object.get_values())
+    GALE_results = subgraphs_results.join(GALE_object.get_values())
+    GALE_results['LeiRinaldoMetric'] = LeiRinaldoMetric_1_fromMatrices(membership_estimate, getMembershipMatrix(labels_true))
 
-GALE_object = GALE(ID=ID, adjacency=adj_true, n_subgraphs=n_subgraphs, size_subgraphs=size_subgraphs, tau=GALE_tau, n_clusters=K, weightedTraversal=True)
-GALE_estimate_membership_matrix = GALE_object.performGALE()
-GALE_estimate_clustering_matrix = getClusteringMatrix(GALE_estimate_membership_matrix)
+    try:
+        results_df = pd.concat([results_df, GALE_results], ignore_index=True)
+    except NameError:
+        results_df = pd.concat([GALE_results], ignore_index=True)
 
-GALE_results = GALE_object.get_values()
-
-start_time_metric = time.time()
-GALE_results['SarkarMetric'] = SarkarMetric_fromMatrices(GALE_estimate_clustering_matrix, clustering_mat_true)
-second_time_metric = time.time()
-GALE_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromMatrices(GALE_estimate_membership_matrix, membership_mat_true)
-end_time_metric = time.time()
-print('Calculating the metrics took ', np.round(second_time_metric - start_time_metric, 4), ' and ', np.round(end_time_metric - second_time_metric, 4), ' seconds')
-
-
-del GALE_object, GALE_estimate_membership_matrix, GALE_estimate_clustering_matrix
-########################################################
-########### Spectral Clustering
-ID += 1
-print('--------------------------')
-print('------ perform SC ------')
-print('--------------------------')
-SC_object = SpectralClustering(ID=ID, P_estimate=adj_true, K=K)
-SC_estimate = SC_object.performSC()
-
-SC_results = SC_object.get_values()
-
-start_time_metric = time.time()
-SC_results['SarkarMetric'] = SarkarMetric_fromLabels(SC_estimate, clustering_labels_true)
-second_time_metric = time.time()
-SC_results['LeiRinaldoMetric_1'] = LeiRinaldoMetric_1_fromLabels(SC_estimate, clustering_labels_true)
-end_time_metric = time.time()
-print('Calculating the metrics took ', np.round(second_time_metric - start_time_metric, 4), ' and ', np.round(end_time_metric - second_time_metric, 4), ' seconds')
-
-
-del SC_object, SC_estimate
-
-try:
-    df = pd.concat([results_df, PACE_results, GALE_results, SC_results], ignore_index=True)
-except NameError:
-    df = pd.concat([PACE_results, GALE_results, SC_results], ignore_index=True)
-
-df.to_csv('results/results_csv.csv', sep=';', index=False)
+    results_df.to_csv('results/results_csv_large_n.csv', sep=';', index=False)

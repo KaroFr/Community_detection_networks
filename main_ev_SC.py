@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from SBM import SBM
+from SBM_Offline import SBM_Offline
 from SpectralClustering import SpectralClustering
 from ErrorMeasures import LeiRinaldoMetric_1_fromLabels
 
@@ -33,7 +33,7 @@ for alpha in alphas:
         for _ in tqdm(np.arange(n_for)):
 
             print('Simulate SBM')
-            SBM_object = SBM(n_clusters=n_clusters, n_nodes=n_nodes, rho=rho, alpha=alpha, n_time_steps=T, epsilon=epsilon)
+            SBM_object = SBM_Offline(n_clusters=n_clusters, n_nodes=n_nodes, rho=rho, alpha=alpha, n_time_steps=T, epsilon=epsilon)
             SBMs = SBM_object.simulate()
             labels_true = SBMs['labels'][T - 1]
 

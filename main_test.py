@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
-from SBM import SBM
+from SBM_Offline import SBM
 from SpectralClustering import SpectralClustering
 from ErrorMeasures import SarkarMetric_fromLabels, LeiRinaldoMetric_1_fromLabels
 from Helpers import getMembershipMatrix, getClusteringMatrix
@@ -22,11 +22,10 @@ n_nodes = 3000
 n_clusters = 5
 rho = 0.7
 alphas = np.arange(start=0.02, stop=1.02, step=0.02)
+initial_distribution = [0.6, 0.1, 0.1, 0.1, 0.1]
 
 for alpha in alphas:
 
-    adj_Sarkar_metric = []
-    Lap_Sarkar_metric = []
     adj_LeiRinaldo_metric = []
     Lap_LeiRinaldo_metric = []
 
@@ -34,10 +33,10 @@ for alpha in alphas:
         print('--------------------------')
         print('------ simulate SBM ------')
         print('--------------------------')
-        SBM_object = SBM(n_clusters=n_clusters, n_nodes=n_nodes, rho=rho, alpha=alpha, n_time_steps=1)
+        SBM_object = SBM(n_clusters=n_clusters, n_nodes=n_nodes, rho=rho, alpha=alpha, n_time_steps=1, initial_distribution=initial_distribution)
         SBMs = SBM_object.simulate()
         labels_true = SBMs['labels'][0]
-        prob_matrix_true = SBMs['probability_matrix'][0]
+        prob_matrix_true = SBMs['prob_matrix'][0]
         adj_matrix = SBMs['adj_matrix'][0]
         SBM_setting = SBM_object.get_values()
 
@@ -54,7 +53,6 @@ for alpha in alphas:
         SC_adj_estimate = SC_adj_object.performSC()
         SC_adj_results = SBM_setting.join(SC_adj_object.get_values())
 
-        adj_Sarkar_metric.append(SarkarMetric_fromLabels(SC_adj_estimate, labels_true))
         adj_LeiRinaldo_metric.append(LeiRinaldoMetric_1_fromLabels(SC_adj_estimate, labels_true))
 
         del SC_adj_object, SC_adj_estimate
@@ -67,14 +65,11 @@ for alpha in alphas:
         SC_lap_estimate = SC_lap_object.performSC()
         SC_lap_results = SBM_setting.join(SC_lap_object.get_values())
 
-        Lap_Sarkar_metric.append(SarkarMetric_fromLabels(SC_lap_estimate, labels_true))
         Lap_LeiRinaldo_metric.append(LeiRinaldoMetric_1_fromLabels(SC_lap_estimate, labels_true))
 
         del SC_lap_object, SC_lap_estimate
 
-    SC_adj_results['SarkarMetric_mean'] = np.mean(adj_Sarkar_metric)
     SC_adj_results['LeiRinaldoMetric_mean'] = np.mean(adj_LeiRinaldo_metric)
-    SC_lap_results['SarkarMetric_mean'] = np.mean(Lap_Sarkar_metric)
     SC_lap_results['LeiRinaldoMetric_mean'] = np.mean(Lap_LeiRinaldo_metric)
 
     try:
