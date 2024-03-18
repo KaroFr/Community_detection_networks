@@ -7,7 +7,7 @@ from SpectralClustering import SpectralClustering
 import time
 
 """
-Class for GALE
+Class for the selection and clustering of the subgraphs
 """
 
 
