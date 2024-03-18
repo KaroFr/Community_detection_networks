@@ -4,6 +4,8 @@ import pandas as pd
 from HierarchicalClustering import HierarchicalClustering
 from SpectralClustering import SpectralClustering
 
+from concurrent.futures import ProcessPoolExecutor
+
 import time
 
 """
@@ -92,6 +94,14 @@ class SubgraphSelector_Offline:
         self.subgraphs_df = subgraphs_df
 
     """
+    Help function for parallel computation
+    """
+    def performSC(self, ID, adjacency, n_clusters):
+        SC_object = SpectralClustering(ID=ID, adjacency=adjacency, n_clusters=n_clusters)
+        SC_result = SC_object.performSC()
+        return SC_result
+
+    """
     Perform Clustering on each subgraph 
     The Clustering results (labels) will be stored in the Dataframe 'subgraphs'
     """
@@ -108,10 +118,22 @@ class SubgraphSelector_Offline:
         if parent_alg == 'SC':
             for t in np.arange(T):
                 clustering_results_array = []
+
+                # ------ with parallel computation ------------
+                # with ProcessPoolExecutor() as executor:
+                #     results = executor.map(self.performSC, [self.ID]*N, subgraphs_for_clustering['adj_' + str(t)], [n_clusters]*N)
+                #
+                #     for result in results:
+                #         clustering_results_array.append(result)
+                # ----------------------------------------------
+
+                # ------ without parallel computation ----------
                 for adj in subgraphs_for_clustering['adj_' + str(t)]:
                     SC_object = SpectralClustering(ID=self.ID, adjacency=adj, n_clusters=n_clusters)
                     SC_result = SC_object.performSC()
                     clustering_results_array.append(SC_result)
+                # ----------------------------------------------
+
                 subgraphs_for_clustering['clus_labels_' + str(t)] = clustering_results_array
 
         # evolutionary spectral clustering
