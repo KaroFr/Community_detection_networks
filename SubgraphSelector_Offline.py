@@ -4,7 +4,9 @@ import pandas as pd
 from HierarchicalClustering import HierarchicalClustering
 from SpectralClustering import SpectralClustering
 
+from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import ProcessPoolExecutor
+from os import getpid
 
 import time
 
@@ -96,7 +98,10 @@ class SubgraphSelector_Offline:
     """
     Help function for parallel computation
     """
-    def performSC(self, ID, adjacency, n_clusters):
+    def performSC(self, adjacency):
+        print(f'start process {getpid()}')
+        ID = self.ID
+        n_clusters = self.K
         SC_object = SpectralClustering(ID=ID, adjacency=adjacency, n_clusters=n_clusters)
         SC_result = SC_object.performSC()
         return SC_result
@@ -119,19 +124,29 @@ class SubgraphSelector_Offline:
             for t in np.arange(T):
                 clustering_results_array = []
 
-                # ------ with parallel computation ------------
-                # with ProcessPoolExecutor() as executor:
-                #     results = executor.map(self.performSC, [self.ID]*N, subgraphs_for_clustering['adj_' + str(t)], [n_clusters]*N)
+                # ------ with Multi Threading ------------
+                with ThreadPoolExecutor(6) as executor:
+                    adjacencies = subgraphs_for_clustering['adj_' + str(t)]
+                    results = executor.map(self.performSC, adjacencies)
+
+                    for result in results:
+                        clustering_results_array.append(result)
+                # ----------------------------------------------
+
+                # ------ with Multi Processing ------------
+                # with ProcessPoolExecutor(6) as executor:
+                #     adjacencies = subgraphs_for_clustering['adj_' + str(t)]
+                #     results = executor.map(self.performSC, adjacencies)
                 #
                 #     for result in results:
                 #         clustering_results_array.append(result)
                 # ----------------------------------------------
 
                 # ------ without parallel computation ----------
-                for adj in subgraphs_for_clustering['adj_' + str(t)]:
-                    SC_object = SpectralClustering(ID=self.ID, adjacency=adj, n_clusters=n_clusters)
-                    SC_result = SC_object.performSC()
-                    clustering_results_array.append(SC_result)
+                # for adj in subgraphs_for_clustering['adj_' + str(t)]:
+                #     SC_object = SpectralClustering(ID=self.ID, adjacency=adj, n_clusters=n_clusters)
+                #     SC_result = SC_object.performSC()
+                #     clustering_results_array.append(SC_result)
                 # ----------------------------------------------
 
                 subgraphs_for_clustering['clus_labels_' + str(t)] = clustering_results_array
