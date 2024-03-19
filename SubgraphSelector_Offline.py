@@ -102,7 +102,12 @@ class SubgraphSelector_Offline:
         print(f'start process {getpid()}')
         ID = self.ID
         n_clusters = self.K
-        SC_object = SpectralClustering(ID=ID, adjacency=adjacency, n_clusters=n_clusters)
+        parent_alg = self.parent_alg
+        if parent_alg == 'SC':
+            P_estimate = 'adjacency'
+        elif parent_alg == 'rSC':
+            P_estimate = 'regularized'
+        SC_object = SpectralClustering(ID=ID, adjacency=adjacency, n_clusters=n_clusters, P_estimate=P_estimate)
         SC_result = SC_object.performSC()
         return SC_result
 
@@ -120,7 +125,7 @@ class SubgraphSelector_Offline:
         forgetting_factor = self.forgetting_factor
 
         # static spectral clustering
-        if parent_alg == 'SC':
+        if parent_alg == 'SC' or parent_alg == 'rSC':
             for t in np.arange(T):
                 clustering_results_array = []
 
