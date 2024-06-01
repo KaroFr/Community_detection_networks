@@ -18,7 +18,7 @@ class SpectralClustering:
     labels_pred = []
     runtime = 0.0
 
-    def __init__(self, adjacency, n_clusters, P_estimate='adjacency', regularization_tau=0, ID=-1):
+    def __init__(self, adjacency, n_clusters, P_estimate='adjacency', regularization_tau=0.0, ID=-1):
         self.ID = ID
         self.adj = adjacency
         self.P_estimate = P_estimate
@@ -46,6 +46,7 @@ class SpectralClustering:
                                 'GALE_weighted_traversal': False,
                                 'GALE_n_unused_subgraphs': -1,
                                 'traversal_threshold': -1.0,
+                                'regularization_tau': self.regularization_tau,
                                 'runtime': self.runtime,
                                 }])
         return var_df
