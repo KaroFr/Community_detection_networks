@@ -16,18 +16,17 @@ Class for the selection and clustering of the subgraphs
 
 
 class SubgraphSelector_Offline:
-    subgraph_selection_alg = 'Random'
+    subgraph_selection_alg = 'random'
     n_nodes = 0
     runtime = 0.0
     n_unused_subgraphs = 0
     n_unused_nodes = 0
 
-    def __init__(self, SBMs, n_subgraphs, size_subgraphs, n_clusters, ID=-1, subgraph_sel_alg='Random',
+    def __init__(self, SBMs, n_subgraphs, size_subgraphs, n_clusters, ID=-1, subgraph_sel_alg='random',
                  parent_alg='SC', forgetting_factor=1):
         self.ID = ID
         self.adjacencies = SBMs['adj_matrix']
         self.N = n_subgraphs
-        self.m = size_subgraphs
         self.T = len(SBMs['adj_matrix'])
         self.K = n_clusters
         self.subgraph_selection_alg = subgraph_sel_alg
@@ -36,6 +35,10 @@ class SubgraphSelector_Offline:
         n_nodes = len(SBMs['adj_matrix'][0])
         print('n_nodes = ', n_nodes)
         self.n_nodes = n_nodes
+        if subgraph_sel_alg == 'random':
+            self.m = size_subgraphs
+        if subgraph_sel_alg == 'partition_overlap':
+            self.m = 2*int(n_nodes/n_subgraphs)
         self.subgraphs_df = pd.DataFrame(index=range(n_subgraphs))
 
     """
@@ -63,17 +66,29 @@ class SubgraphSelector_Offline:
         n = self.n_nodes
         m = self.m
         N = self.N
-        indices = []
-        for _ in np.arange(N):
-            # randomly choose m indices out of [n] (0 included, n excluded)
-            index_set = np.random.choice(n, size=m, replace=False)
-            index_set = np.sort(index_set)
-            indices.append(index_set)
+        subgraph_sel_ag = self.subgraph_selection_alg
 
-        # count oob-samples
-        union = np.unique(indices)
-        oob_samples = np.setdiff1d(np.arange(n), union)
-        self.n_unused_nodes = len(oob_samples)
+        indices = []
+        if subgraph_sel_ag == 'random':
+            for _ in np.arange(N):
+                # randomly choose m indices out of [n] (0 included, n excluded)
+                index_set = np.random.choice(n, size=m, replace=False)
+                index_set = np.sort(index_set)
+                indices.append(index_set)
+
+            # count oob-samples
+            union = np.unique(indices)
+            oob_samples = np.setdiff1d(np.arange(n), union)
+            self.n_unused_nodes = len(oob_samples)
+
+        if subgraph_sel_ag == 'partition_overlap':
+            all_indices = np.arange(n)
+            np.random.shuffle(all_indices)
+            all_indices = np.concatenate((all_indices, all_indices))
+            for i in np.arange(N):
+                index_set = all_indices[int(0.5*i*m):int((0.5*i+1)*m)]
+                indices.append(index_set)
+            self.n_unused_nodes = 0
 
         self.subgraphs_df['indices'] = indices
         print(' Selected N =', N, ' subgraphs of size m =', m)
