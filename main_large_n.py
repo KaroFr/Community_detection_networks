@@ -52,15 +52,17 @@ if __name__ == '__main__':
         SC_LeiRinaldo_metric = []
         # rSC_LeiRinaldo_metric = []
         # HC_LeiRinaldo_metric = []
-        PACE_LeiRinaldo_metric = []
+        # PACE_LeiRinaldo_metric = []
         GALE_LeiRinaldo_metric = []
+        GALE_LeiRinaldo_metric_2 = []
         SC_runtimes = []
         # rSC_runtimes = []
         # HC_runtimes = []
-        PACE_runtimes = []
+        # PACE_runtimes = []
         GALE_runtimes = []
+        GALE_runtimes_2 = []
 
-        for _ in tqdm(np.arange(1)):
+        for _ in tqdm(np.arange(10)):
             print('--------------------------')
             print('------ simulate SBM ------')
             print('--------------------------')
@@ -123,21 +125,21 @@ if __name__ == '__main__':
             subgraphs_df = Selector_object.getSubgraphs()
             subgraphs_results = SBM_setting.join(Selector_object.get_values())
 
-            del Selector_object, SBMs
+            del Selector_object
 
             ########################################################
             ########## PACE with SC
-            print('----------------------------')
-            print('--- perform PACE -----------')
-            print('----------------------------')
-            PACE_object = PACE_Offline(subgraphs_df=subgraphs_df, n_nodes=n_nodes, n_clusters=n_clusters)
-            PACE_labels_estimate = PACE_object.performPACE()[0]
-            PACE_results = subgraphs_results.join(PACE_object.get_values())
-
-            PACE_LeiRinaldo_metric.append(LeiRinaldoMetric_1_fromLabels(PACE_labels_estimate, labels_true))
-            PACE_runtimes.append(PACE_results['runtime'])
-
-            del PACE_object, PACE_labels_estimate
+            # print('----------------------------')
+            # print('--- perform PACE -----------')
+            # print('----------------------------')
+            # PACE_object = PACE_Offline(subgraphs_df=subgraphs_df, n_nodes=n_nodes, n_clusters=n_clusters)
+            # PACE_labels_estimate = PACE_object.performPACE()[0]
+            # PACE_results = subgraphs_results.join(PACE_object.get_values())
+            #
+            # PACE_LeiRinaldo_metric.append(LeiRinaldoMetric_1_fromLabels(PACE_labels_estimate, labels_true))
+            # PACE_runtimes.append(PACE_results['runtime'])
+            #
+            # del PACE_object, PACE_labels_estimate
             ########################################################
             ########## GALE with SC
             print('----------------------------')
@@ -153,20 +155,47 @@ if __name__ == '__main__':
 
             del GALE_object, GALE_memb_estimate, subgraphs_df, subgraphs_results
 
+            ########################################################
+            ########## Divide and cluster subgraphs with random selection
+            Selector_object_2 = SubgraphSelector_Offline(ID=ID, SBMs=SBMs, n_subgraphs=n_subgraphs,
+                                                       n_clusters=n_clusters, parent_alg='SC',
+                                                       subgraph_sel_alg='random')
+            subgraphs_df_2 = Selector_object.getSubgraphs()
+            subgraphs_results_2 = SBM_setting.join(Selector_object.get_values())
+
+            del Selector_object_2, SBMs
+
+            ########################################################
+            ########## GALE with SC
+            print('----------------------------')
+            print('--- perform GALE -----------')
+            print('----------------------------')
+            GALE_object_2 = GALE_Offline(subgraphs_df=subgraphs_df_2, n_nodes=n_nodes, n_clusters=n_clusters, theta=0.0)
+            GALE_memb_estimate_2 = GALE_object_2.performGALE()[0]
+            GALE_results_2 = subgraphs_results_2.join(GALE_object_2.get_values())
+
+            GALE_LeiRinaldo_metric_2.append(
+                LeiRinaldoMetric_1_fromMatrices(GALE_memb_estimate_2, getMembershipMatrix(labels_true)))
+            GALE_runtimes_2.append(GALE_results_2['runtime'])
+
+            del GALE_object_2, GALE_memb_estimate_2, subgraphs_df, subgraphs_results
+
         SC_adj_results['LeiRinaldoMetric_mean'] = np.mean(SC_LeiRinaldo_metric)
         SC_adj_results['runtime_mean'] = np.mean(SC_runtimes)
         # rSC_adj_results['LeiRinaldoMetric_mean'] = np.mean(rSC_LeiRinaldo_metric)
         # rSC_adj_results['runtime_mean'] = np.mean(rSC_runtimes)
         # HC_adj_results['LeiRinaldoMetric_mean'] = np.mean(HC_LeiRinaldo_metric)
         # HC_adj_results['runtime_mean'] = np.mean(HC_runtimes)
-        PACE_results['LeiRinaldoMetric_mean'] = np.mean(PACE_LeiRinaldo_metric)
-        PACE_results['runtime_mean'] = np.mean(PACE_runtimes)
+        # PACE_results['LeiRinaldoMetric_mean'] = np.mean(PACE_LeiRinaldo_metric)
+        # PACE_results['runtime_mean'] = np.mean(PACE_runtimes)
         GALE_results['LeiRinaldoMetric_mean'] = np.mean(GALE_LeiRinaldo_metric)
         GALE_results['runtime_mean'] = np.mean(GALE_runtimes)
+        GALE_results_2['LeiRinaldoMetric_mean'] = np.mean(GALE_LeiRinaldo_metric_2)
+        GALE_results_2['runtime_mean'] = np.mean(GALE_runtimes_2)
 
         try:
-            results_df = pd.concat([results_df, SC_adj_results, PACE_results, GALE_results], ignore_index=True)
+            results_df = pd.concat([results_df, SC_adj_results, GALE_results, GALE_results_2], ignore_index=True)
         except NameError:
-            results_df = pd.concat([SC_adj_results, PACE_results, GALE_results], ignore_index=True)
+            results_df = pd.concat([SC_adj_results, GALE_results, GALE_results_2], ignore_index=True)
 
         results_df.to_csv('results/results_csv_large_n_partition.csv', sep=';', index=False)
