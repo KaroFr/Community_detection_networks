@@ -21,7 +21,8 @@ class SubgraphSelector_Online:
     indices = []
     labels_subgraphs = []
 
-    def __init__(self, n_nodes, n_subgraphs, size_subgraphs, n_clusters, indices=None, ID=-1, subgraph_sel_alg='random',
+    def __init__(self, n_nodes, n_subgraphs, n_clusters, size_subgraphs=0, indices=None, ID=-1,
+                 subgraph_sel_alg='random',
                  parent_alg='SC', forgetting_factor=1):
         self.time_step = 0
         self.ID = ID
@@ -29,7 +30,7 @@ class SubgraphSelector_Online:
         if subgraph_sel_alg == 'random':
             self.m = size_subgraphs
         if subgraph_sel_alg == 'partition_overlap':
-            self.m = 2*int(n_nodes/n_subgraphs)
+            self.m = 2 * int(n_nodes / n_subgraphs)
         self.K = n_clusters
         self.subgraph_selection_alg = subgraph_sel_alg
         self.parent_alg = parent_alg
@@ -93,7 +94,7 @@ class SubgraphSelector_Online:
             np.random.shuffle(all_indices)
             all_indices = np.concatenate((all_indices, all_indices))
             for i in np.arange(N):
-                index_set = all_indices[int(0.5*i*m):int((0.5*i+1)*m)]
+                index_set = all_indices[int(0.5 * i * m):int((0.5 * i + 1) * m)]
                 indices.append(index_set)
             self.n_unused_nodes = 0
 
