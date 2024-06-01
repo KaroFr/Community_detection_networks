@@ -22,7 +22,7 @@ class SubgraphSelector_Offline:
     n_unused_subgraphs = 0
     n_unused_nodes = 0
 
-    def __init__(self, SBMs, n_subgraphs, size_subgraphs, n_clusters, ID=-1, subgraph_sel_alg='random',
+    def __init__(self, SBMs, n_subgraphs, n_clusters, size_subgraphs=0, ID=-1, subgraph_sel_alg='random',
                  parent_alg='SC', forgetting_factor=1):
         self.ID = ID
         self.adjacencies = SBMs['adj_matrix']
