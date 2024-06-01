@@ -33,8 +33,12 @@ if __name__ == '__main__':
 
     n_subgraphs = 10
     size_subgraphs_divisor = 3
+    # size_subgraphs = 1500
 
     for n_nodes in n_nodes_array:
+        # expected degree < n_nodes * alpha
+        # -> this doubles the degree
+        regularization_tau = n_nodes * alpha
 
         # load the results csv (if already existing) to save the variables
         try:
@@ -46,10 +50,12 @@ if __name__ == '__main__':
         size_subgraphs = int(np.floor(n_nodes / size_subgraphs_divisor))
 
         SC_LeiRinaldo_metric = []
+        rSC_LeiRinaldo_metric = []
         # HC_LeiRinaldo_metric = []
         PACE_LeiRinaldo_metric = []
         GALE_LeiRinaldo_metric = []
         SC_runtimes = []
+        rSC_runtimes = []
         # HC_runtimes = []
         PACE_runtimes = []
         GALE_runtimes = []
@@ -65,6 +71,21 @@ if __name__ == '__main__':
             SBM_setting = SBM_object.get_values()
 
             del SBM_object
+            ########################################################
+            ########## regularized Spectral Clustering
+            print('----------------------------')
+            print('--- perform reg. adj. SC ---')
+            print('----------------------------')
+
+            rSC_adj_object = SpectralClustering(ID=ID, adjacency=adj_matrix, n_clusters=n_clusters,
+                                                P_estimate='regularized', regularization_tau=regularization_tau)
+            rSC_adj_estimate = rSC_adj_object.performSC()
+            rSC_adj_results = SBM_setting.join(rSC_adj_object.get_values())
+
+            rSC_LeiRinaldo_metric.append(LeiRinaldoMetric_1_fromLabels(rSC_adj_estimate, labels_true))
+            rSC_runtimes.append(rSC_adj_results['runtime'])
+            del rSC_adj_object, rSC_adj_estimate
+
             ########################################################
             ########## Spectral Clustering
             print('----------------------------')
@@ -98,7 +119,7 @@ if __name__ == '__main__':
             ########## Divide and cluster subgraphs
             Selector_object = SubgraphSelector_Offline(ID=ID, SBMs=SBMs, n_subgraphs=n_subgraphs,
                                                        size_subgraphs=size_subgraphs,
-                                                       n_clusters=n_clusters, parent_alg='SC')
+                                                       n_clusters=n_clusters, parent_alg='rSC')
             subgraphs_df = Selector_object.getSubgraphs()
             subgraphs_results = SBM_setting.join(Selector_object.get_values())
 
@@ -126,13 +147,16 @@ if __name__ == '__main__':
             GALE_memb_estimate = GALE_object.performGALE()[0]
             GALE_results = subgraphs_results.join(GALE_object.get_values())
 
-            GALE_LeiRinaldo_metric.append(LeiRinaldoMetric_1_fromMatrices(GALE_memb_estimate, getMembershipMatrix(labels_true)))
+            GALE_LeiRinaldo_metric.append(
+                LeiRinaldoMetric_1_fromMatrices(GALE_memb_estimate, getMembershipMatrix(labels_true)))
             GALE_runtimes.append(GALE_results['runtime'])
 
             del GALE_object, GALE_memb_estimate, subgraphs_df, subgraphs_results
 
         SC_adj_results['LeiRinaldoMetric_mean'] = np.mean(SC_LeiRinaldo_metric)
         SC_adj_results['runtime_mean'] = np.mean(SC_runtimes)
+        rSC_adj_results['LeiRinaldoMetric_mean'] = np.mean(rSC_LeiRinaldo_metric)
+        rSC_adj_results['runtime_mean'] = np.mean(rSC_runtimes)
         # HC_adj_results['LeiRinaldoMetric_mean'] = np.mean(HC_LeiRinaldo_metric)
         # HC_adj_results['runtime_mean'] = np.mean(HC_runtimes)
         PACE_results['LeiRinaldoMetric_mean'] = np.mean(PACE_LeiRinaldo_metric)
@@ -141,8 +165,8 @@ if __name__ == '__main__':
         GALE_results['runtime_mean'] = np.mean(GALE_runtimes)
 
         try:
-            results_df = pd.concat([results_df, SC_adj_results, PACE_results, GALE_results], ignore_index=True)
+            results_df = pd.concat([results_df, SC_adj_results, rSC_adj_results, PACE_results, GALE_results], ignore_index=True)
         except NameError:
-            results_df = pd.concat([SC_adj_results, PACE_results, GALE_results], ignore_index=True)
+            results_df = pd.concat([SC_adj_results, rSC_adj_results, PACE_results, GALE_results], ignore_index=True)
 
         results_df.to_csv('results/results_csv_not_parallel.csv', sep=';', index=False)
