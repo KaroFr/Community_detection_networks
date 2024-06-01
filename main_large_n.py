@@ -118,7 +118,7 @@ if __name__ == '__main__':
             ########################################################
             ########## Divide and cluster subgraphs
             Selector_object = SubgraphSelector_Offline(ID=ID, SBMs=SBMs, n_subgraphs=n_subgraphs,
-                                                       n_clusters=n_clusters, parent_alg='rSC',
+                                                       n_clusters=n_clusters, parent_alg='SC',
                                                        subgraph_sel_alg='partition_overlap')
             subgraphs_df = Selector_object.getSubgraphs()
             subgraphs_results = SBM_setting.join(Selector_object.get_values())
