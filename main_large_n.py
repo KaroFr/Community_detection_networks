@@ -42,20 +42,20 @@ if __name__ == '__main__':
 
         # load the results csv (if already existing) to save the variables
         try:
-            results_df = pd.read_csv('results/results_csv_not_parallel.csv', sep=';', index_col=False)
+            results_df = pd.read_csv('results/results_csv_large_n_partition.csv', sep=';', index_col=False)
             ID = max(results_df['ID']) + 1
         except FileNotFoundError:
             ID = 1
 
-        size_subgraphs = int(np.floor(n_nodes / size_subgraphs_divisor))
+        # size_subgraphs = int(np.floor(n_nodes / size_subgraphs_divisor))
 
         SC_LeiRinaldo_metric = []
-        rSC_LeiRinaldo_metric = []
+        # rSC_LeiRinaldo_metric = []
         # HC_LeiRinaldo_metric = []
         PACE_LeiRinaldo_metric = []
         GALE_LeiRinaldo_metric = []
         SC_runtimes = []
-        rSC_runtimes = []
+        # rSC_runtimes = []
         # HC_runtimes = []
         PACE_runtimes = []
         GALE_runtimes = []
@@ -73,18 +73,18 @@ if __name__ == '__main__':
             del SBM_object
             ########################################################
             ########## regularized Spectral Clustering
-            print('----------------------------')
-            print('--- perform reg. adj. SC ---')
-            print('----------------------------')
-
-            rSC_adj_object = SpectralClustering(ID=ID, adjacency=adj_matrix, n_clusters=n_clusters,
-                                                P_estimate='regularized', regularization_tau=regularization_tau)
-            rSC_adj_estimate = rSC_adj_object.performSC()
-            rSC_adj_results = SBM_setting.join(rSC_adj_object.get_values())
-
-            rSC_LeiRinaldo_metric.append(LeiRinaldoMetric_1_fromLabels(rSC_adj_estimate, labels_true))
-            rSC_runtimes.append(rSC_adj_results['runtime'])
-            del rSC_adj_object, rSC_adj_estimate
+            # print('----------------------------')
+            # print('--- perform reg. adj. SC ---')
+            # print('----------------------------')
+            #
+            # rSC_adj_object = SpectralClustering(ID=ID, adjacency=adj_matrix, n_clusters=n_clusters,
+            #                                     P_estimate='regularized', regularization_tau=regularization_tau)
+            # rSC_adj_estimate = rSC_adj_object.performSC()
+            # rSC_adj_results = SBM_setting.join(rSC_adj_object.get_values())
+            #
+            # rSC_LeiRinaldo_metric.append(LeiRinaldoMetric_1_fromLabels(rSC_adj_estimate, labels_true))
+            # rSC_runtimes.append(rSC_adj_results['runtime'])
+            # del rSC_adj_object, rSC_adj_estimate
 
             ########################################################
             ########## Spectral Clustering
@@ -118,8 +118,8 @@ if __name__ == '__main__':
             ########################################################
             ########## Divide and cluster subgraphs
             Selector_object = SubgraphSelector_Offline(ID=ID, SBMs=SBMs, n_subgraphs=n_subgraphs,
-                                                       size_subgraphs=size_subgraphs,
-                                                       n_clusters=n_clusters, parent_alg='rSC')
+                                                       n_clusters=n_clusters, parent_alg='rSC',
+                                                       subgraph_sel_alg='partition_overlap')
             subgraphs_df = Selector_object.getSubgraphs()
             subgraphs_results = SBM_setting.join(Selector_object.get_values())
 
@@ -155,8 +155,8 @@ if __name__ == '__main__':
 
         SC_adj_results['LeiRinaldoMetric_mean'] = np.mean(SC_LeiRinaldo_metric)
         SC_adj_results['runtime_mean'] = np.mean(SC_runtimes)
-        rSC_adj_results['LeiRinaldoMetric_mean'] = np.mean(rSC_LeiRinaldo_metric)
-        rSC_adj_results['runtime_mean'] = np.mean(rSC_runtimes)
+        # rSC_adj_results['LeiRinaldoMetric_mean'] = np.mean(rSC_LeiRinaldo_metric)
+        # rSC_adj_results['runtime_mean'] = np.mean(rSC_runtimes)
         # HC_adj_results['LeiRinaldoMetric_mean'] = np.mean(HC_LeiRinaldo_metric)
         # HC_adj_results['runtime_mean'] = np.mean(HC_runtimes)
         PACE_results['LeiRinaldoMetric_mean'] = np.mean(PACE_LeiRinaldo_metric)
@@ -165,8 +165,8 @@ if __name__ == '__main__':
         GALE_results['runtime_mean'] = np.mean(GALE_runtimes)
 
         try:
-            results_df = pd.concat([results_df, SC_adj_results, rSC_adj_results, PACE_results, GALE_results], ignore_index=True)
+            results_df = pd.concat([results_df, SC_adj_results, PACE_results, GALE_results], ignore_index=True)
         except NameError:
-            results_df = pd.concat([SC_adj_results, rSC_adj_results, PACE_results, GALE_results], ignore_index=True)
+            results_df = pd.concat([SC_adj_results, PACE_results, GALE_results], ignore_index=True)
 
-        results_df.to_csv('results/results_csv_not_parallel.csv', sep=';', index=False)
+        results_df.to_csv('results/results_csv_large_n_partition.csv', sep=';', index=False)
