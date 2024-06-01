@@ -103,9 +103,8 @@ class SubgraphSelector_Offline:
         ID = self.ID
         n_clusters = self.K
         parent_alg = self.parent_alg
-        if parent_alg == 'SC':
-            P_estimate = 'adjacency'
-        elif parent_alg == 'rSC':
+        P_estimate = 'adjacency'
+        if parent_alg == 'rSC':
             P_estimate = 'regularized'
         SC_object = SpectralClustering(ID=ID, adjacency=adjacency, n_clusters=n_clusters, P_estimate=P_estimate)
         SC_result = SC_object.performSC()
@@ -130,12 +129,12 @@ class SubgraphSelector_Offline:
                 clustering_results_array = []
 
                 # ------ with Multi Threading ------------
-                with ThreadPoolExecutor(6) as executor:
-                    adjacencies = subgraphs_for_clustering['adj_' + str(t)]
-                    results = executor.map(self.performSC, adjacencies)
-
-                    for result in results:
-                        clustering_results_array.append(result)
+                # with ThreadPoolExecutor(6) as executor:
+                #     adjacencies = subgraphs_for_clustering['adj_' + str(t)]
+                #     results = executor.map(self.performSC, adjacencies)
+                #
+                #     for result in results:
+                #         clustering_results_array.append(result)
                 # ----------------------------------------------
 
                 # ------ with Multi Processing ------------
@@ -148,10 +147,10 @@ class SubgraphSelector_Offline:
                 # ----------------------------------------------
 
                 # ------ without parallel computation ----------
-                # for adj in subgraphs_for_clustering['adj_' + str(t)]:
-                #     SC_object = SpectralClustering(ID=self.ID, adjacency=adj, n_clusters=n_clusters)
-                #     SC_result = SC_object.performSC()
-                #     clustering_results_array.append(SC_result)
+                for adj in subgraphs_for_clustering['adj_' + str(t)]:
+                    SC_object = SpectralClustering(ID=self.ID, adjacency=adj, n_clusters=n_clusters)
+                    SC_result = SC_object.performSC()
+                    clustering_results_array.append(SC_result)
                 # ----------------------------------------------
 
                 subgraphs_for_clustering['clus_labels_' + str(t)] = clustering_results_array
