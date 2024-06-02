@@ -19,19 +19,20 @@ class GALE_Offline:
     runtime = 0.0
     n_unused_subgraphs = 0
 
-    def __init__(self, subgraphs_df, n_nodes, n_clusters, theta, weightedTraversal=True):
+    def __init__(self, subgraphs_df, n_nodes, n_clusters, theta, weightedTraversal=True, partition_overlap=False):
         self.subgraphs_df = subgraphs_df
         N = len(subgraphs_df['indices'])
         self.N = N
         size_subgraphs = len(subgraphs_df['indices'][0])
         m = size_subgraphs
         self.m = m
-        self.T = int((subgraphs_df.shape[1] - 1)/2)
+        self.T = int((subgraphs_df.shape[1] - 1) / 2)
         self.K = n_clusters
-        self.tau = theta*N*m/n_nodes
+        self.tau = theta * N * m / n_nodes
         self.n_nodes = n_nodes
         self.traversal_threshold = np.ceil(size_subgraphs ** 2 / (2 * n_nodes))
         self.weightedTraversal = weightedTraversal
+        self.partition_overlap = partition_overlap
 
     """
     get import values as dictionary
@@ -253,7 +254,7 @@ class GALE_Offline:
 
         for t in np.arange(T):
             subgraphs_clustered = subgraphs_to_align['clus_labels_' + str(int(t))]
-            if t == T-1:
+            if t == T - 1:
                 membership_estimate, counter_unused_subgraphs = self.alignLabels_static(subgraphs_clustered, tau)
             else:
                 membership_estimate, counter_unused_subgraphs = self.alignLabels_static(subgraphs_clustered, 0.0)
@@ -383,7 +384,10 @@ class GALE_Offline:
     def performGALE(self):
         print('Perform GALE:')
         time_start_GALE = time.time()
-        self.getTraversal_final()
+        if self.partition_overlap:
+            self.sequence = np.arange(self.N)
+        else:
+            self.getTraversal_final()
         self.alignLabels()
         self.getBinaryMembershipmatrix()
         time_end_GALE = time.time()
