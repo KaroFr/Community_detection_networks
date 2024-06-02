@@ -38,7 +38,7 @@ class SubgraphSelector_Offline:
         if subgraph_sel_alg == 'random':
             self.m = size_subgraphs
         if subgraph_sel_alg == 'partition_overlap':
-            self.m = 2*int(n_nodes/n_subgraphs)
+            self.m = 2*np.ceil(n_nodes/n_subgraphs)
         self.subgraphs_df = pd.DataFrame(index=range(n_subgraphs))
 
     """
