@@ -60,6 +60,7 @@ if __name__ == '__main__':
         # PACE_runtimes = []
         GALE_runtimes = []
 
+        n_repeat = 10
         for _ in tqdm(np.arange(10)):
             print('--------------------------')
             print('------ simulate SBM ------')
@@ -155,6 +156,7 @@ if __name__ == '__main__':
 
         SC_adj_results['LeiRinaldoMetric_mean'] = np.mean(SC_LeiRinaldo_metric)
         SC_adj_results['runtime_mean'] = np.mean(SC_runtimes)
+        SC_adj_results['n_repeat'] = n_repeat
         # rSC_adj_results['LeiRinaldoMetric_mean'] = np.mean(rSC_LeiRinaldo_metric)
         # rSC_adj_results['runtime_mean'] = np.mean(rSC_runtimes)
         # HC_adj_results['LeiRinaldoMetric_mean'] = np.mean(HC_LeiRinaldo_metric)
@@ -163,6 +165,7 @@ if __name__ == '__main__':
         # PACE_results['runtime_mean'] = np.mean(PACE_runtimes)
         GALE_results['LeiRinaldoMetric_mean'] = np.mean(GALE_LeiRinaldo_metric)
         GALE_results['runtime_mean'] = np.mean(GALE_runtimes)
+        GALE_results['n_repeat'] = n_repeat
 
         try:
             results_df = pd.concat([results_df, SC_adj_results, GALE_results], ignore_index=True)
