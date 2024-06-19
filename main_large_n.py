@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
     arr_1 = np.arange(200, 2000, step=200)
     arr_2 = np.arange(2000, 5000, step=500)
-    arr_3 = np.arange(5000, 38000, step=1000)
+    arr_3 = np.arange(5000, 70000, step=1000)
     n_nodes_array = np.concatenate([arr_1, arr_2, arr_3])
 
     n_clusters = 5
@@ -31,14 +31,17 @@ if __name__ == '__main__':
     rho = 0.6
     alpha = 0.1
 
-    n_subgraphs = 10
-    size_subgraphs_divisor = 3
+    n_subgraphs = 60
+    subgraph_sel_alg = 'partition_overlap'
+    # size_subgraphs_divisor = 3
     # size_subgraphs = 1500
+
+    n_repeat = 5
 
     for n_nodes in n_nodes_array:
         # expected degree < n_nodes * alpha
         # -> this doubles the degree
-        regularization_tau = n_nodes * alpha
+        # regularization_tau = n_nodes * alpha
 
         # load the results csv (if already existing) to save the variables
         try:
@@ -47,28 +50,27 @@ if __name__ == '__main__':
         except FileNotFoundError:
             ID = 1
 
-        # size_subgraphs = int(np.floor(n_nodes / size_subgraphs_divisor))
+        size_subgraphs = 2*np.ceil(n_nodes/n_subgraphs)
 
-        SC_LeiRinaldo_metric = []
+        # SC_LeiRinaldo_metric = []
         # rSC_LeiRinaldo_metric = []
         # HC_LeiRinaldo_metric = []
         # PACE_LeiRinaldo_metric = []
         GALE_LeiRinaldo_metric = []
-        SC_runtimes = []
+        # SC_runtimes = []
         # rSC_runtimes = []
         # HC_runtimes = []
         # PACE_runtimes = []
         GALE_runtimes = []
 
-        n_repeat = 10
-        for _ in tqdm(np.arange(10)):
+        for _ in tqdm(np.arange(n_repeat)):
             print('--------------------------')
             print('------ simulate SBM ------')
             print('--------------------------')
             SBM_object = SBM_Offline(n_clusters=n_clusters, n_nodes=n_nodes, rho=rho, alpha=alpha, n_time_steps=1)
             SBMs = SBM_object.simulate()
             labels_true = SBMs['labels'][0]
-            adj_matrix = SBMs['adj_matrix'][0]
+            # adj_matrix = SBMs['adj_matrix'][0]
             SBM_setting = SBM_object.get_values()
 
             del SBM_object
@@ -89,18 +91,18 @@ if __name__ == '__main__':
 
             ########################################################
             ########## Spectral Clustering
-            print('----------------------------')
-            print('--- perform adjacency SC ---')
-            print('----------------------------')
-
-            SC_adj_object = SpectralClustering(ID=ID, adjacency=adj_matrix, n_clusters=n_clusters,
-                                               P_estimate='adjacency')
-            SC_adj_estimate = SC_adj_object.performSC()
-            SC_adj_results = SBM_setting.join(SC_adj_object.get_values())
-
-            SC_LeiRinaldo_metric.append(LeiRinaldoMetric_1_fromLabels(SC_adj_estimate, labels_true))
-            SC_runtimes.append(SC_adj_results['runtime'])
-            del SC_adj_object, SC_adj_estimate
+            # print('----------------------------')
+            # print('--- perform adjacency SC ---')
+            # print('----------------------------')
+            #
+            # SC_adj_object = SpectralClustering(ID=ID, adjacency=adj_matrix, n_clusters=n_clusters,
+            #                                    P_estimate='adjacency')
+            # SC_adj_estimate = SC_adj_object.performSC()
+            # SC_adj_results = SBM_setting.join(SC_adj_object.get_values())
+            #
+            # SC_LeiRinaldo_metric.append(LeiRinaldoMetric_1_fromLabels(SC_adj_estimate, labels_true))
+            # SC_runtimes.append(SC_adj_results['runtime'])
+            # del SC_adj_object, SC_adj_estimate
 
             ########################################################
             ########## Hierarchical Clustering
@@ -118,13 +120,17 @@ if __name__ == '__main__':
 
             ########################################################
             ########## Divide and cluster subgraphs
+            print('--------------------------')
+            print('---- select subgraphs ----')
+            print('--------------------------')
             Selector_object = SubgraphSelector_Offline(ID=ID, SBMs=SBMs, n_subgraphs=n_subgraphs,
+                                                       size_subgraphs=int(size_subgraphs),
                                                        n_clusters=n_clusters, parent_alg='SC',
-                                                       subgraph_sel_alg='partition_overlap')
+                                                       subgraph_sel_alg=subgraph_sel_alg)
             subgraphs_df = Selector_object.getSubgraphs()
             subgraphs_results = SBM_setting.join(Selector_object.get_values())
 
-            del Selector_object
+            del Selector_object, SBMs, SBM_setting
 
             ########################################################
             ########## PACE with SC
@@ -149,14 +155,13 @@ if __name__ == '__main__':
             GALE_results = subgraphs_results.join(GALE_object.get_values())
 
             GALE_LeiRinaldo_metric.append(
-                LeiRinaldoMetric_1_fromMatrices(GALE_memb_estimate, getMembershipMatrix(labels_true)))
+               LeiRinaldoMetric_1_fromMatrices(GALE_memb_estimate, getMembershipMatrix(labels_true)))
             GALE_runtimes.append(GALE_results['runtime'])
 
             del GALE_object, GALE_memb_estimate, subgraphs_df, subgraphs_results
 
-        SC_adj_results['LeiRinaldoMetric_mean'] = np.mean(SC_LeiRinaldo_metric)
-        SC_adj_results['runtime_mean'] = np.mean(SC_runtimes)
-        SC_adj_results['n_repeat'] = n_repeat
+        # SC_adj_results['LeiRinaldoMetric_mean'] = np.mean(SC_LeiRinaldo_metric)
+        # SC_adj_results['runtime_mean'] = np.mean(SC_runtimes)
         # rSC_adj_results['LeiRinaldoMetric_mean'] = np.mean(rSC_LeiRinaldo_metric)
         # rSC_adj_results['runtime_mean'] = np.mean(rSC_runtimes)
         # HC_adj_results['LeiRinaldoMetric_mean'] = np.mean(HC_LeiRinaldo_metric)
@@ -168,8 +173,8 @@ if __name__ == '__main__':
         GALE_results['n_repeat'] = n_repeat
 
         try:
-            results_df = pd.concat([results_df, SC_adj_results, GALE_results], ignore_index=True)
+            results_df = pd.concat([results_df, GALE_results], ignore_index=True)
         except NameError:
-            results_df = pd.concat([SC_adj_results, GALE_results], ignore_index=True)
+            results_df = pd.concat([GALE_results], ignore_index=True)
 
         results_df.to_csv('results/results_csv_large_n_partition.csv', sep=';', index=False)
