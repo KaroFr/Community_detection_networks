@@ -68,7 +68,7 @@ for alpha in alphas:
         # data frame of the whole run
         SBM_setting = SBM_object.get_values()
         SBM_setting['Metric_SC'] = LeiRinaldoMetric_SC
-        results_ev_df = pd.DataFrame({'forgetting_factor ': forgetting_factors,
+        results_ev_df = pd.DataFrame({'forgetting_factor': forgetting_factors,
                                       'Metric_evSC': LeiRinaldoMetric_evSC_arr})
         results_ev_df = pd.concat([SBM_setting, results_ev_df], axis=1)
 
