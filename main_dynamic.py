@@ -50,7 +50,8 @@ for n_nodes in n_nodes_array:
     # runtime_subgraph_selection = []
     # runtime_subgraph_clustering = []
 
-    for _ in tqdm(np.arange(4)):
+    n_repeat = 10
+    for _ in tqdm(np.arange(n_repeat)):
         ########################################################
         ########## Initiate SBM
         SBM_object = SBM_Online(n_clusters=n_clusters, n_nodes=n_nodes, rho=rho, alpha=alpha, kappa=kappa)
@@ -121,6 +122,7 @@ for n_nodes in n_nodes_array:
     # GALE_evSC_results['runtime_subgraph_clustering'] = np.mean(runtime_subgraph_clustering)
     evSC_results['LeiRinaldoMetric'] = np.mean(evSC_LeiRinaldo_metric)
     evSC_results['Runtime'] = np.mean(evSC_runtimes)
+    evSC_results['n_repeat'] = n_repeat
 
     try:
         results_df = pd.concat([results_df, evSC_results], ignore_index=True)
