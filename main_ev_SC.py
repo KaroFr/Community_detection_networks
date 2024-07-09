@@ -16,15 +16,15 @@ n_for = 10
 
 forgetting_factors = np.arange(0.0, 1.02, step=0.02)
 alphas = [0.1]
-epsilons = np.arange(0.0, 1.01, step=0.02)
-# epsilons = [0.01, 0.025, 0.05, 0.075, 0.1]
+kappas = np.arange(0.0, 1.01, step=0.02)
+# kappas = [0.01, 0.025, 0.05, 0.075, 0.1]
 
 LeiRinaldoMetric_SC = 0
 LeiRinaldoMetric_evSC_arr = np.zeros(len(forgetting_factors))
 
 for alpha in alphas:
 
-    for epsilon in epsilons:
+    for kappa in kappas:
 
         # load the results csv (if already existing) to save the variables
         try:
@@ -40,7 +40,7 @@ for alpha in alphas:
 
             for index, forgetting_factor in enumerate(forgetting_factors):
                 print('Simulate SBM')
-                SBM_object = SBM_Online(n_clusters=n_clusters, n_nodes=n_nodes, rho=rho, alpha=alpha, epsilon=epsilon)
+                SBM_object = SBM_Online(n_clusters=n_clusters, n_nodes=n_nodes, rho=rho, alpha=alpha, kappa=kappa)
 
                 # calculate estimate for evolutionary SC
                 labels_true, adj_matrix_estimate = SBM_object.simulate_next()
