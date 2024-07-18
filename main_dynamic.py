@@ -22,15 +22,18 @@ n_nodes_array = np.concatenate([arr_1, arr_2, arr_3])
 
 n_clusters = 5
 initial_distribution = []
-rho = 0.8
+rho = 0.6
 alpha = 0.1
 kappa = 0.1
-forgetting_factor = 0.6
+forgetting_factor = 0.8
 
 T = 10
 
-# n_subgraphs = 10
+n_subgraphs = 6
+subgraph_sel_alg = 'partition_overlap'
 # size_subgraphs_divisor = 3
+
+n_repeat = 5
 
 for n_nodes in n_nodes_array:
     print('n_nodes = ', n_nodes)
@@ -43,15 +46,15 @@ for n_nodes in n_nodes_array:
         ID = 1
 
     # size_subgraphs = int(np.floor(n_nodes / size_subgraphs_divisor))
+    size_subgraphs = 2 * np.ceil(n_nodes / n_subgraphs)
 
-    # GALE_evSC_LeiRinaldo_metric = []
+    GALE_evSC_LeiRinaldo_metric = []
+    GALE_evSC_runtimes = []
     evSC_LeiRinaldo_metric = []
-    # GALE_evSC_runtimes = []
     evSC_runtimes = []
-    # runtime_subgraph_selection = []
-    # runtime_subgraph_clustering = []
+    runtime_subgraph_selection = []
+    runtime_subgraph_clustering = []
 
-    n_repeat = 10
     for _ in tqdm(np.arange(n_repeat)):
         ########################################################
         ########## Initiate SBM
@@ -59,83 +62,83 @@ for n_nodes in n_nodes_array:
 
         ########################################################
         ########## Initiate subgraphs and GALE for evSC
-        # Selector_object_evSC = SubgraphSelector_Online(n_nodes=n_nodes, n_subgraphs=n_subgraphs,
-        #                                                size_subgraphs=size_subgraphs,
-        #                                                n_clusters=n_clusters,
-        #                                                parent_alg='evSC', forgetting_factor=forgetting_factor)
-        # indices = Selector_object_evSC.getIndices()
-        # GALE_object_evSC = GALE_Online(indices=indices, n_nodes=n_nodes, n_clusters=n_clusters, theta=0.3)
+        Selector_object_evSC = SubgraphSelector_Online(n_nodes=n_nodes, n_subgraphs=n_subgraphs, n_clusters=n_clusters,
+                                                       size_subgraphs=size_subgraphs, subgraph_sel_alg=subgraph_sel_alg,
+                                                       parent_alg='evSC', forgetting_factor=forgetting_factor)
+        # indices need to be calculated only once
+        indices = Selector_object_evSC.getIndices()
+        # initiate GALE object
+        GALE_object_evSC = GALE_Online(indices=indices, n_nodes=n_nodes, n_clusters=n_clusters, theta=0.3)
 
         ########################################################
-        ########## Initiate subgraphs and GALE for SC
-        # Selector_object_SC = SubgraphSelector_Online(n_nodes=n_nodes, n_subgraphs=n_subgraphs,
-        #                                              size_subgraphs=size_subgraphs,
-        #                                              n_clusters=n_clusters, indices=indices,
-        #                                              parent_alg='SC', forgetting_factor=forgetting_factor)
-        # GALE_object_SC = GALE_Online(indices=indices, n_nodes=n_nodes, n_clusters=n_clusters, theta=0.3)
-
-        ########################################################
-        ########## cluster subgraphs and align for every time step
+        ########## for every time step calculate adjacency estimate matrix and perform ev SC and GALE
         labels_true, adj_estimate = SBM_object.simulate_next()
         for t in np.arange(T):
             # SBM
             labels_true, adj = SBM_object.simulate_next()
             adj_estimate = forgetting_factor * adj + (1 - forgetting_factor) * adj_estimate
 
-            del adj
-
             # cluster Subgraphs
-            # labels_subgraphs_evSC = Selector_object_evSC.predict_subgraph_labels(adj)
-            # labels_subgraphs_SC = Selector_object_SC.predict_subgraph_labels(adj)
+            labels_subgraphs_evSC = Selector_object_evSC.predict_subgraph_labels(adj)
 
-            # align subgraphs of first SBM
-            # membership_estimate_evSC = GALE_object_evSC.performGALE(labels_subgraphs_evSC)
-            # membership_estimate_SC = GALE_object_SC.performGALE(labels_subgraphs_SC)
+            del adj
 
         SBM_setting = SBM_object.get_values()
         del SBM_object
 
-        # cluster with evolutionary SC
+        # perform GALE: align subgraphs
+        membership_estimate_evSC = GALE_object_evSC.performGALE(labels_subgraphs_evSC)
+
+        # perform global ev SC: cluster the graph
         SC_object = SpectralClustering(ID=ID, adjacency=adj_estimate, n_clusters=n_clusters,
                                        P_estimate='adjacency')
         SC_estimate = SC_object.performSC()
-        evSC_results = SC_object.get_values()
-        evSC_results = evSC_results.join(SBM_setting)
 
+        ########################################################
+        ########## get values
 
+        # get values of ev. SC
+        evSC_results = SBM_setting.join(SC_object.get_values())
+        del SC_object
+        # get metric of ev SC
         evSC_LeiRinaldo_metric.append(LeiRinaldoMetric_1_fromLabels(SC_estimate, labels_true))
+        del SC_estimate
+        # get runtime of SC
         evSC_runtimes.append(evSC_results['runtime'])
-        del SC_object, SC_estimate
 
-        # get values
-        evSC_results = evSC_results.join(SBM_object.get_values())
-        # SBM_setting = SBM_object.get_values()
-        # subgraphs_results_evSC = SBM_setting.join(Selector_object_evSC.get_values())
-        # subgraphs_results_SC = SBM_setting.join(Selector_object_SC.get_values())
-        # GALE_evSC_results = subgraphs_results_evSC.join(GALE_object_evSC.get_values())
+        # get values of GALE
+        subgraphs_results_evSC = SBM_setting.join(Selector_object_evSC.get_values())
+        GALE_evSC_results = subgraphs_results_evSC.join(GALE_object_evSC.get_values())
+        del Selector_object_evSC, GALE_object_evSC
+        # get metric of GALE
+        GALE_evSC_LeiRinaldo_metric.append(
+            LeiRinaldoMetric_1_fromMatrices(membership_estimate_evSC, getMembershipMatrix(labels_true)))
+        del membership_estimate_evSC
+        # get runtimes of GALE
+        GALE_evSC_runtimes.append(GALE_evSC_results['runtime_GALE'])
+        runtime_subgraph_selection.append(GALE_evSC_results['runtime_subgraph_selection'])
+        runtime_subgraph_clustering.append(GALE_evSC_results['runtime_subgraph_clustering'])
 
-        # get metric
-        # GALE_evSC_LeiRinaldo_metric.append(
-        #     LeiRinaldoMetric_1_fromMatrices(membership_estimate_evSC, getMembershipMatrix(labels_true)))
-
-        # get runtime
-        # GALE_evSC_runtimes.append(GALE_results_evSC['runtime_GALE'])
-        # runtime_subgraph_selection.append(GALE_results_evSC['runtime_subgraph_selection'])
-        # runtime_subgraph_clustering.append(GALE_results_evSC['runtime_subgraph_clustering'])
-
-    # save values for evSC
-    # GALE_evSC_results['LeiRinaldoMetric'] = np.mean(GALE_evSC_LeiRinaldo_metric)
-    # GALE_evSC_results['runtime_GALE'] = np.mean(GALE_evSC_runtimes)
-    # GALE_evSC_results['runtime_subgraph_selection'] = np.mean(runtime_subgraph_selection)
-    # GALE_evSC_results['runtime_subgraph_clustering'] = np.mean(runtime_subgraph_clustering)
+    # save values
+    GALE_evSC_results['LeiRinaldoMetric_mean'] = np.mean(GALE_evSC_LeiRinaldo_metric)
+    GALE_evSC_results['runtime_GALE'] = np.mean(GALE_evSC_runtimes)
+    GALE_evSC_results['runtime_subgraph_selection'] = np.mean(runtime_subgraph_selection)
+    GALE_evSC_results['runtime_subgraph_clustering'] = np.mean(runtime_subgraph_clustering)
+    GALE_evSC_results['runtime_mean'] = (GALE_evSC_results['runtime_GALE']
+                                         + GALE_evSC_results['runtime_subgraph_selection']
+                                         + GALE_evSC_results['runtime_subgraph_clustering']
+                                         + GALE_evSC_results['runtime_traversal_GALE'])
+    GALE_evSC_results['n_repeat'] = n_repeat
     evSC_results['LeiRinaldoMetric_mean'] = np.mean(evSC_LeiRinaldo_metric)
     evSC_results['runtime_mean'] = np.mean(evSC_runtimes)
+    del evSC_results['runtime']
     evSC_results['n_repeat'] = n_repeat
     evSC_results['algorithm'] = 'evSC'
+    evSC_results['forgetting_factor'] = forgetting_factor
 
     try:
-        results_df = pd.concat([results_df, evSC_results], ignore_index=True)
+        results_df = pd.concat([results_df, evSC_results, GALE_evSC_results], ignore_index=True)
     except NameError:
-        results_df = pd.concat([evSC_results], ignore_index=True)
+        results_df = pd.concat([evSC_results, GALE_evSC_results], ignore_index=True)
 
     results_df.to_csv('results/results_dynamic.csv', sep=';', index=False)
