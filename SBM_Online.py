@@ -179,9 +179,9 @@ class SBM_Online:
             self.get_initial_states()
         else:
             self.get_next_states()
-        time_step += 1
-        self.time_step = time_step
         adj_matrix = self.get_adjacency_matrix()
         current_states = self.current_states
         print('Simulated the SBM for time step t=', time_step)
+        time_step += 1
+        self.time_step = time_step
         return current_states, adj_matrix
