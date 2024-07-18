@@ -22,7 +22,7 @@ n_nodes_array = np.concatenate([arr_1, arr_2, arr_3])
 
 n_clusters = 5
 initial_distribution = []
-rho = 0.6
+rho = 0.8
 alpha = 0.1
 kappa = 0.1
 forgetting_factor = 0.6
@@ -33,6 +33,7 @@ T = 10
 # size_subgraphs_divisor = 3
 
 for n_nodes in n_nodes_array:
+    print('n_nodes = ', n_nodes)
 
     # load the results csv (if already existing) to save the variables
     try:
@@ -81,6 +82,8 @@ for n_nodes in n_nodes_array:
             labels_true, adj = SBM_object.simulate_next()
             adj_estimate = forgetting_factor * adj + (1 - forgetting_factor) * adj_estimate
 
+            del adj
+
             # cluster Subgraphs
             # labels_subgraphs_evSC = Selector_object_evSC.predict_subgraph_labels(adj)
             # labels_subgraphs_SC = Selector_object_SC.predict_subgraph_labels(adj)
@@ -89,11 +92,16 @@ for n_nodes in n_nodes_array:
             # membership_estimate_evSC = GALE_object_evSC.performGALE(labels_subgraphs_evSC)
             # membership_estimate_SC = GALE_object_SC.performGALE(labels_subgraphs_SC)
 
+        SBM_setting = SBM_object.get_values()
+        del SBM_object
+
         # cluster with evolutionary SC
         SC_object = SpectralClustering(ID=ID, adjacency=adj_estimate, n_clusters=n_clusters,
                                        P_estimate='adjacency')
         SC_estimate = SC_object.performSC()
         evSC_results = SC_object.get_values()
+        evSC_results = evSC_results.join(SBM_setting)
+
 
         evSC_LeiRinaldo_metric.append(LeiRinaldoMetric_1_fromLabels(SC_estimate, labels_true))
         evSC_runtimes.append(evSC_results['runtime'])
@@ -120,9 +128,10 @@ for n_nodes in n_nodes_array:
     # GALE_evSC_results['runtime_GALE'] = np.mean(GALE_evSC_runtimes)
     # GALE_evSC_results['runtime_subgraph_selection'] = np.mean(runtime_subgraph_selection)
     # GALE_evSC_results['runtime_subgraph_clustering'] = np.mean(runtime_subgraph_clustering)
-    evSC_results['LeiRinaldoMetric'] = np.mean(evSC_LeiRinaldo_metric)
-    evSC_results['Runtime'] = np.mean(evSC_runtimes)
+    evSC_results['LeiRinaldoMetric_mean'] = np.mean(evSC_LeiRinaldo_metric)
+    evSC_results['runtime_mean'] = np.mean(evSC_runtimes)
     evSC_results['n_repeat'] = n_repeat
+    evSC_results['algorithm'] = 'evSC'
 
     try:
         results_df = pd.concat([results_df, evSC_results], ignore_index=True)
